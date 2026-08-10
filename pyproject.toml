@@ -8,7 +8,15 @@ authors = [
 ]
 requires-python = ">=3.12"
 dependencies = [
+    "huggingface-hub>=1.27.0",
     "llama-cpp-python>=0.3.34",
+    "matplotlib>=3.11.1",
+    "numpy>=2.5.2",
+    "polars>=1.43.2",
+    "pyserial>=3.5",
+    "pyyaml>=6.0.3",
+    "scipy>=1.18.0",
+    "tqdm>=4.70.0",
 ]
 
 [project.scripts]
@@ -20,3 +28,9 @@ build-backend = "uv_build"
 
 [tool.uv]
 package = false
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "ruff>=0.16.2",
+]
