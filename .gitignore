@@ -1,2 +1,52 @@
 docs/LEARNING_PLAN.md
 docs/IMPLEMENTATION_PLAN.md
+
+# ===== llm-token-fec-fpga =====
+
+# Python / uv
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+
+# Local LLM
+.cache/
+huggingface/
+*.safetensors
+*.gguf
+pytorch_model*.bin
+
+# Local learning / scratch
+docs/LEARNING_PLAN.md
+docs/IMPLEMENTATION_PLAN.md
+scratch/
+
+# Experiment generated files
+build/
+studies/**/runs/
+
+# Vivado generated files
+.Xil/
+*.xpr
+*.jou
+*.log
+*.str
+*.wdb
+*.wcfg
+*.pb
+*.dcp
+
+*.cache/
+*.gen/
+*.hw/
+*.ip_user_files/
+*.runs/
+*.sim/
+
+# Editor / OS
+.vscode/
+.DS_Store
+Thumbs.db
+
+# ===== end llm-token-fec-fpga =====
