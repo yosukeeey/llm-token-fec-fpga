@@ -50,3 +50,5 @@ studies/**/runs/
 Thumbs.db
 
 # ===== end llm-token-fec-fpga =====
+
+docs/.ignore/
