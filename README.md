@@ -73,10 +73,11 @@ Pythonの依存は`uv.lock`、C++の依存は必要になった時点で`vcpkg.j
 
 ## Python reference implementation
 
-Python参照実装は通信を行わず、C++ / RTL / FPGAの独立な答え合わせに使用する。Frame V0は接続試験用で、payloadをopaque bytesとして扱う。Token FECの将来仕様はここで固定しない。詳細は[`docs/TEST_PROTOCOL_V0.md`](docs/TEST_PROTOCOL_V0.md)を参照する。
+Python参照実装は通信を行わず、C++ / RTL / FPGAの独立な答え合わせに使用する。Frame V0は接続試験用transportとして維持し、Token payload境界はVersion 1として固定する。詳細は[`docs/TEST_PROTOCOL_V0.md`](docs/TEST_PROTOCOL_V0.md)を参照する。
 
 ```text
-sw/common/       bit列、CRC-32C、Frame V0
+spec/            Python / C++ / RTL共通定数の正本
+sw/common/       bit列、CRC-32C、Frame V0、Token payload型
 sw/fec/          Parity、Repetition、Hamming(7,4)
 sw/evaluation/   JSONL schema、Vector生成、Result比較
 sw/cpp/          独立なC++20実装とPython Vector一致Test
@@ -90,6 +91,7 @@ C++のCRC / FEC / Frame実装は標準Libraryだけを使う。JSONL readerの�
 Golden Vectorの生成と再現性確認:
 
 ```powershell
+uv run python -m scripts.generate_protocol_constants --check
 uv run python -m scripts.generate_reference_vectors
 uv run python -m scripts.generate_reference_vectors --check
 ```
