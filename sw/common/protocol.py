@@ -4,11 +4,12 @@ import struct
 from dataclasses import dataclass
 from enum import IntEnum
 
+from . import protocol_constants as constants
 from .crc32c import crc32c
 
-SOF = b"\xA5\x5A"
-FRAME_VERSION = 0
-MAX_PAYLOAD_BYTES = 1024
+SOF = constants.FRAME_SOF
+FRAME_VERSION = constants.FRAME_VERSION
+MAX_PAYLOAD_BYTES = constants.FRAME_MAX_PAYLOAD_BYTES
 _HEADER = struct.Struct("<BBHH")
 _CRC = struct.Struct("<I")
 MIN_FRAME_BYTES = len(SOF) + _HEADER.size + _CRC.size
@@ -33,11 +34,14 @@ class FrameVersionError(ProtocolError):
 class MessageType(IntEnum):
     """Identify test-only Frame V0 message types."""
 
-    PING = 0x01
-    PONG = 0x02
-    TEST_REQUEST = 0x10
-    TEST_RESULT = 0x11
-    ERROR_RESPONSE = 0x7F
+    PING = constants.MESSAGE_TYPE_PING
+    PONG = constants.MESSAGE_TYPE_PONG
+    TOKEN_REQUEST = constants.MESSAGE_TYPE_TOKEN_REQUEST
+    TOKEN_RESULT = constants.MESSAGE_TYPE_TOKEN_RESULT
+    # Frame V0 used TEST names before the Token payload contract was fixed.
+    TEST_REQUEST = TOKEN_REQUEST
+    TEST_RESULT = TOKEN_RESULT
+    ERROR_RESPONSE = constants.MESSAGE_TYPE_ERROR_RESPONSE
 
 
 @dataclass(frozen=True, slots=True)

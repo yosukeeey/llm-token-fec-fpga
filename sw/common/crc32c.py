@@ -1,8 +1,10 @@
 """Dependency-free CRC-32C (Castagnoli) reference implementation."""
 
-CRC32C_REFLECTED_POLYNOMIAL = 0x82F63B78
-CRC32C_INITIAL = 0xFFFFFFFF
-CRC32C_XOR_OUT = 0xFFFFFFFF
+from .protocol_constants import (
+    CRC32C_INITIAL,
+    CRC32C_REFLECTED_POLYNOMIAL,
+    CRC32C_XOR_OUT,
+)
 
 
 def crc32c_update(crc: int, data: bytes) -> int:
