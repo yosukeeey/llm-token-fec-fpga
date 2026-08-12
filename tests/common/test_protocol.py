@@ -19,13 +19,13 @@ def test_frame_v0_known_answer() -> None:
 
 
 def test_frame_v0_round_trip_with_opaque_payload() -> None:
-    frame = Frame(MessageType.TEST_REQUEST, b"\x00\xA5\x5A\xFF", flags=0x1234)
+    frame = Frame(MessageType.TOKEN_REQUEST, b"\x00\xA5\x5A\xFF", flags=0x1234)
     assert parse_frame(serialize_frame(frame)) == frame
 
 
 def test_incremental_parser_handles_garbage_chunks_and_consecutive_frames() -> None:
     first = Frame(MessageType.PING)
-    second = Frame(MessageType.TEST_REQUEST, b"abc")
+    second = Frame(MessageType.TOKEN_REQUEST, b"abc")
     stream = b"garbage" + serialize_frame(first) + serialize_frame(second)
     parser = FrameParser()
     parsed: list[Frame] = []
