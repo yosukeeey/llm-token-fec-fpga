@@ -186,6 +186,8 @@ try {
     Assert-NativeSuccess "ruff"
     uv run pytest
     Assert-NativeSuccess "pytest"
+    uv run python -m scripts.generate_protocol_constants --check
+    Assert-NativeSuccess "protocol constant reproducibility"
     uv run python -m scripts.generate_reference_vectors --check
     Assert-NativeSuccess "reference vector reproducibility"
 

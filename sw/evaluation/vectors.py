@@ -6,6 +6,19 @@ from pathlib import Path
 from sw.common.bits import flip_bits, pack_bits
 from sw.common.crc32c import crc32c
 from sw.common.protocol import Frame, MessageType, parse_frame, serialize_frame
+from sw.common.types import (
+    ChannelFlag,
+    ChannelState,
+    ExtensionTlv,
+    ProtectionMode,
+    ProtectionRequest,
+    ResultFlag,
+    ResultStatus,
+    TokenFlag,
+    TokenRecord,
+    TokenRequest,
+    TokenResult,
+)
 from sw.fec.hamming74 import hamming74_decode, hamming74_encode
 from sw.fec.parity import even_parity_bit
 from sw.fec.repetition import repetition_decode, repetition_encode
@@ -120,11 +133,38 @@ def _hamming_vectors() -> list[TestVector]:
 
 
 def _protocol_vectors() -> list[TestVector]:
+    token = TokenRecord(
+        stream_id=0x11223344,
+        sequence=0xFFFFFFFF,
+        token_id=0x55667788,
+        generated_time_us=1_000,
+        deadline_us=2_000,
+        flags=TokenFlag.GENERATED_TIME_VALID | TokenFlag.DEADLINE_VALID,
+        extensions=(ExtensionTlv(0x80, b"\xAA\x55"),),
+    )
+    request_payload = TokenRequest(
+        token,
+        ProtectionRequest(
+            ProtectionMode.HAMMING_7_4,
+            block_length_bits=len(token.pack()) * 8,
+            code_rate_num=4,
+            code_rate_den=7,
+        ),
+        ChannelState(0x8000, ChannelFlag.QUALITY_VALID),
+    ).pack()
+    result_payload = TokenResult(
+        token,
+        ResultStatus(ResultFlag.FEC_CORRECTED, corrected_count=1),
+    ).pack()
     frames = (
         ("frame-v0-ping", Frame(MessageType.PING)),
         (
-            "frame-v0-opaque-payload",
-            Frame(MessageType.TEST_REQUEST, payload=b"\x00\x01\x02\xA5\x5A\xFF", flags=1),
+            "frame-v0-token-request-v1",
+            Frame(MessageType.TOKEN_REQUEST, payload=request_payload),
+        ),
+        (
+            "frame-v0-token-result-v1",
+            Frame(MessageType.TOKEN_RESULT, payload=result_payload),
         ),
     )
     vectors: list[TestVector] = []
