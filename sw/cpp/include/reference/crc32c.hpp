@@ -3,11 +3,19 @@
 #include <cstdint>
 #include <span>
 
+#include "reference/protocol_constants.hpp"
+
 namespace reference {
 
-inline constexpr std::uint32_t crc32c_reflected_polynomial = 0x82F63B78U;
-inline constexpr std::uint32_t crc32c_initial = 0xFFFFFFFFU;
-inline constexpr std::uint32_t crc32c_xor_out = 0xFFFFFFFFU;
+inline constexpr auto crc32c_reflected_polynomial = static_cast<std::uint32_t>(
+    protocol_constants::crc32c_reflected_polynomial
+);
+inline constexpr auto crc32c_initial = static_cast<std::uint32_t>(
+    protocol_constants::crc32c_initial
+);
+inline constexpr auto crc32c_xor_out = static_cast<std::uint32_t>(
+    protocol_constants::crc32c_xor_out
+);
 
 [[nodiscard]] std::uint32_t crc32c_update(
     std::uint32_t crc,

@@ -8,18 +8,26 @@
 #include <vector>
 
 #include "reference/bits.hpp"
+#include "reference/protocol_constants.hpp"
 
 namespace reference {
 
-inline constexpr std::uint8_t frame_version = 0;
-inline constexpr std::size_t max_payload_bytes = 1024;
+inline constexpr auto frame_version = static_cast<std::uint8_t>(
+    protocol_constants::frame_version
+);
+inline constexpr auto max_payload_bytes = static_cast<std::size_t>(
+    protocol_constants::frame_max_payload_bytes
+);
 
 enum class MessageType : std::uint8_t {
-    ping = 0x01,
-    pong = 0x02,
-    test_request = 0x10,
-    test_result = 0x11,
-    error_response = 0x7F,
+    ping = protocol_constants::message_type_ping,
+    pong = protocol_constants::message_type_pong,
+    token_request = protocol_constants::message_type_token_request,
+    token_result = protocol_constants::message_type_token_result,
+    /** @note Frame V0 used test names before the Token payload contract was fixed. */
+    test_request = token_request,
+    test_result = token_result,
+    error_response = protocol_constants::message_type_error_response,
 };
 
 class ProtocolError : public std::runtime_error {

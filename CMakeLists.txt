@@ -8,6 +8,7 @@ add_library(reference_model STATIC
     sw/cpp/src/fec.cpp
     sw/cpp/src/hex.cpp
     sw/cpp/src/protocol.cpp
+    sw/cpp/src/types.cpp
 )
 target_include_directories(reference_model PUBLIC sw/cpp/include)
 target_compile_features(reference_model PUBLIC cxx_std_20)

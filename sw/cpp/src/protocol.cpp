@@ -9,8 +9,10 @@
 namespace reference {
 namespace {
 
-constexpr std::array<std::uint8_t, 2> sof{0xA5U, 0x5AU};
-constexpr std::size_t header_bytes = 6U;
+constexpr auto sof = protocol_constants::frame_sof;
+constexpr auto header_bytes = static_cast<std::size_t>(
+    protocol_constants::frame_header_size
+);
 constexpr std::size_t crc_bytes = 4U;
 constexpr std::size_t minimum_frame_bytes = sof.size() + header_bytes + crc_bytes;
 
@@ -66,10 +68,13 @@ Frame parse_frame(const std::span<const std::uint8_t> data) {
     if (!std::equal(sof.begin(), sof.end(), data.begin())) {
         throw ProtocolError("frame does not start with SOF");
     }
-    const auto version = data[2];
-    const auto message_type = data[3];
-    const auto flags = read_u16(data, 4);
-    const auto payload_length = read_u16(data, 6);
+    const auto version = data[protocol_constants::frame_version_offset];
+    const auto message_type = data[protocol_constants::frame_message_type_offset];
+    const auto flags = read_u16(data, protocol_constants::frame_flags_offset);
+    const auto payload_length = read_u16(
+        data,
+        protocol_constants::frame_payload_length_offset
+    );
     if (payload_length > max_payload_bytes) {
         throw FrameLengthError("payload length exceeds Frame V0 maximum");
     }
@@ -104,7 +109,10 @@ std::vector<Frame> FrameParser::feed(const std::span<const std::uint8_t> data) {
         if (buffer_.size() < sof.size() + header_bytes) {
             break;
         }
-        const auto payload_length = read_u16(buffer_, 6);
+        const auto payload_length = read_u16(
+            buffer_,
+            protocol_constants::frame_payload_length_offset
+        );
         if (payload_length > max_payload_bytes) {
             errors_.emplace_back("payload length exceeds maximum");
             buffer_.erase(buffer_.begin());
