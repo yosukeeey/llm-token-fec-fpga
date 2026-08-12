@@ -13,14 +13,10 @@ dependencies = [
     "matplotlib>=3.11.1",
     "numpy>=2.5.2",
     "polars>=1.43.2",
-    "pyserial>=3.5",
     "pyyaml>=6.0.3",
     "scipy>=1.18.0",
     "tqdm>=4.70.0",
 ]
-
-[project.scripts]
-llm-token-fec-fpga = "llm_token_fec_fpga:main"
 
 [build-system]
 requires = ["uv_build>=0.12.3,<0.13.0"]
@@ -34,3 +30,19 @@ dev = [
     "pytest>=9.1.1",
     "ruff>=0.16.2",
 ]
+
+[tool.pytest.ini_options]
+addopts = "-p no:cacheprovider"
+pythonpath = ["."]
+testpaths = ["tests"]
+
+[tool.ruff.lint]
+extend-select = ["D"]
+ignore = ["D105"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["D"]
+"**/__init__.py" = ["D104"]
