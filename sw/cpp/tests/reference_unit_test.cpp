@@ -10,8 +10,16 @@
 #include "reference/fec.hpp"
 #include "reference/hex.hpp"
 #include "reference/protocol.hpp"
+#include "reference/protocol_constants.hpp"
+#include "reference/types.hpp"
 
 namespace {
+
+static_assert(reference::protocol_constants::token_record_base_size == 40U);
+static_assert(reference::protocol_constants::token_record_reserved_1_offset == 38U);
+static_assert(reference::protocol_constants::protection_request_size == 16U);
+static_assert(reference::protocol_constants::channel_state_size == 4U);
+static_assert(reference::protocol_constants::result_status_size == 8U);
 
 void require(const bool condition, const std::string_view message) {
     if (!condition) {
@@ -83,6 +91,59 @@ void test_protocol() {
     require(parser.errors().size() == 1U, "Frame parser error count failed");
 }
 
+void test_protocol_types() {
+    const reference::TokenRecord token{
+        0x11223344U,
+        0xFFFFFFFFU,
+        0x55667788U,
+        0U,
+        1'000U,
+        2'000U,
+        static_cast<std::uint8_t>(
+            reference::protocol_constants::token_flag_generated_time_valid
+            | reference::protocol_constants::token_flag_deadline_valid
+        ),
+        {{0x80U, {0xAAU, 0x55U}}},
+    };
+    const auto token_bytes = reference::pack_token_record(token);
+    require(
+        reference::hex_encode(token_bytes)
+            == "0103280044332211ffffffff8877665500000000"
+               "e803000000000000d00700000000000004000000"
+               "8002aa55",
+        "TokenRecord known answer failed"
+    );
+    require(reference::unpack_token_record(token_bytes) == token, "TokenRecord round trip failed");
+
+    const reference::ProtectionRequest protection{
+        reference::ProtectionMode::hamming_7_4,
+        static_cast<std::uint16_t>(token_bytes.size() * 8U),
+        1U,
+        4U,
+        7U,
+    };
+    const reference::TokenRequest request{
+        token,
+        protection,
+        {0x8000U, static_cast<std::uint8_t>(reference::ChannelFlag::quality_valid)},
+    };
+    const auto request_bytes = reference::pack_token_request(request);
+    require(
+        reference::unpack_token_request(request_bytes) == request,
+        "TokenRequest round trip failed"
+    );
+
+    const reference::TokenResult result{
+        token,
+        {static_cast<std::uint32_t>(reference::ResultFlag::fec_corrected), 1U, 0U},
+    };
+    require(
+        reference::unpack_token_result(reference::pack_token_result(result)) == result,
+        "TokenResult round trip failed"
+    );
+    require(reference::next_sequence(0xFFFFFFFFU) == 0U, "sequence wrap failed");
+}
+
 }
 
 int main() {
@@ -91,6 +152,7 @@ int main() {
         test_crc32c();
         test_fec();
         test_protocol();
+        test_protocol_types();
         std::cout << "reference_unit_test: passed\n";
         return 0;
     } catch (const std::exception& error) {
