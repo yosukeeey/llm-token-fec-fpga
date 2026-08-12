@@ -11,21 +11,19 @@ limit, and blank line before a body.
 
 ## Code comments
 
-Comments must explain contracts and decisions that code alone does not show:
+Keep comments brief and use them only to record:
 
-* bit and byte ordering, field layout, and units;
-* supported parameter values and correction limits;
-* non-obvious algorithm choices and hardware constraints;
-* public behavior that another implementation must reproduce.
+* why an approach was selected;
+* why a seemingly unnecessary operation remains;
+* external constraints from hardware, protocols, or legacy systems;
+* non-obvious invariants involving concurrency, interrupts, or DMA;
+* safety conditions that must not be changed;
+* known defects and their workarounds.
 
-Do not restate obvious assignments or let comments duplicate stale code.
+Do not restate what the code already says.
 
-Python public modules, classes, functions, and methods use NumPy-style
-docstrings. Parameter and attribute entries include types, for example
-`data : bytes`. Include only the sections that add information, such as
-`Parameters`, `Attributes`, `Returns`, `Raises`, and `Notes`.
+Python public API documentation uses concise NumPy-style docstrings. Parameter
+and attribute entries include types, for example `data : bytes`.
 
-C and C++ public declarations use Doxygen comments with `@brief`, `@param`,
-`@return`, and `@throws` where applicable. SystemVerilog modules use Doxygen
-module headers that document parameters, ports, bit ordering, latency, and
-correction limits.
+When one of the cases above needs a comment, use Doxygen syntax for C/C++ and
+standard block or line comments for SystemVerilog.
