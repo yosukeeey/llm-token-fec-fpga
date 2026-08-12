@@ -1,0 +1,36 @@
+#!/bin/sh
+
+# Enforce a small Conventional Commits subset without external dependencies.
+message_file=$1
+subject=$(sed -n '1p' "$message_file")
+
+# Git creates these subjects itself; normal commits must use the format below.
+case "$subject" in
+    Merge\ *|Revert\ \"*) exit 0 ;;
+esac
+
+format='^(feat|fix|test|refactor|docs|build|chore|ci|perf|revert)\([a-z0-9][a-z0-9._/-]*\): .+$'
+if ! printf '%s\n' "$subject" | grep -Eq "$format"; then
+    printf '%s\n' 'Invalid commit subject.' >&2
+    printf '%s\n' 'Expected: <type>(<scope>): <summary>' >&2
+    printf '%s\n' 'Example: feat(rtl): add Hamming decoder' >&2
+    exit 1
+fi
+
+if [ "${#subject}" -gt 72 ]; then
+    printf '%s\n' 'Commit subject must be 72 characters or fewer.' >&2
+    exit 1
+fi
+
+case "$subject" in
+    *.)
+        printf '%s\n' 'Commit subject must not end with a period.' >&2
+        exit 1
+        ;;
+esac
+
+second_line=$(sed -n '2p' "$message_file")
+if [ -n "$second_line" ]; then
+    printf '%s\n' 'Leave a blank line between the subject and body.' >&2
+    exit 1
+fi
