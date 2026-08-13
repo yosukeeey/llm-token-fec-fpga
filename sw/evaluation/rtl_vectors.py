@@ -23,6 +23,12 @@ def _corrected(vector: TestVector) -> int:
     return int("FEC_CORRECTED" in vector.expected_status)
 
 
+def _byte_length(field_name: str, bit_length: int) -> int:
+    if bit_length % 8:
+        raise ValueError(f"{field_name} bit length must be byte-aligned")
+    return bit_length // 8
+
+
 def write_rtl_vector_files(vector_dir: Path, output_dir: Path) -> None:
     """Write whitespace-delimited records for the RTL testbenches.
 
@@ -79,4 +85,19 @@ def write_rtl_vector_files(vector_dir: Path, output_dir: Path) -> None:
         )
     (output_dir / "hamming74.txt").write_text(
         "\n".join(hamming_lines) + "\n", encoding="ascii"
+    )
+
+    protocol = read_jsonl(vector_dir / "protocol.jsonl", TestVector)
+    protocol_lines = [str(len(protocol))]
+    for vector in protocol:
+        frame_length = _byte_length("frame", vector.encoded_bit_length)
+        payload_length = _byte_length("payload", vector.input_bit_length)
+        protocol_lines.append(
+            f"{vector.case_id} {frame_length} "
+            f"{_packed_vector_value(vector.encoded_hex)} "
+            f"{vector.parameters['message_type']} {vector.parameters['flags']} "
+            f"{payload_length} {_packed_vector_value(vector.input_hex)}"
+        )
+    (output_dir / "protocol.txt").write_text(
+        "\n".join(protocol_lines) + "\n", encoding="ascii"
     )
