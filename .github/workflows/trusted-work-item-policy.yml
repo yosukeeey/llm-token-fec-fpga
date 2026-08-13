@@ -3,6 +3,13 @@ name: Trusted work item policy
 on:
   pull_request_target:
     types: [opened, edited, synchronize, reopened]
+  issues:
+    types: [edited, closed, reopened]
+  delete: {}
+  repository_dispatch:
+    types: [work-item-refresh]
+  schedule:
+    - cron: "17 3 * * *"
 
 permissions:
   contents: read
@@ -11,36 +18,23 @@ permissions:
   statuses: write
 
 concurrency:
-  group: work-item-policy-${{ github.repository }}-${{ github.event.pull_request.number }}
+  group: work-item-policy-${{ github.repository }}
   cancel-in-progress: true
 
 jobs:
-  report:
+  refresh-work-items:
     runs-on: ubuntu-latest
     steps:
       - name: Check out trusted policy
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          ref: ${{ github.event.pull_request.base.sha }}
+          ref: ${{ github.event.repository.default_branch || github.ref_name }}
           persist-credentials: false
-      - name: Report work item policy
+      - name: Refresh work item policy
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
           REPOSITORY: ${{ github.repository }}
         run: |
-          $ErrorActionPreference = "Stop"
-          $PSNativeCommandUseErrorActionPreference = $true
-          $statusPath = "repos/$env:REPOSITORY/statuses/$env:HEAD_SHA"
           $targetUrl = "$env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID"
-          gh api --method POST $statusPath -f state=pending -f context=work-item-policy -f description="Work item policy is running" -f target_url=$targetUrl
-          try {
-              ./scripts/work_item_policy.ps1 pull-request -Repository $env:REPOSITORY -PullRequest $env:PR_NUMBER
-              gh api --method POST $statusPath -f state=success -f context=work-item-policy -f description="Work item policy passed" -f target_url=$targetUrl
-          }
-          catch {
-              gh api --method POST $statusPath -f state=failure -f context=work-item-policy -f description="Work item policy failed" -f target_url=$targetUrl
-              throw
-          }
+          ./scripts/work_item_status.ps1 all -Repository $env:REPOSITORY -TargetUrl $targetUrl
