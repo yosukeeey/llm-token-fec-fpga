@@ -116,3 +116,5 @@ RTL検証は固定JSONLからSimulator入力を生成し、Parity 3件、Repetit
 .\scripts\test_frame_rtl.ps1
 .\scripts\test_uart_rtl.ps1
 ```
+
+Basys 3実機検証の準備状況と記録方法は[`docs/bringup/README.md`](docs/bringup/README.md)に定義する。
