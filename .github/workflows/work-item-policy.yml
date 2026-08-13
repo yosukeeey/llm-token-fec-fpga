@@ -13,62 +13,16 @@ jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
+      - name: Check out policy
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
       - name: Validate Issue and PR isolation
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
-          PR_BODY: ${{ github.event.pull_request.body }}
-          PR_BRANCH: ${{ github.head_ref }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           REPOSITORY: ${{ github.repository }}
         run: |
-          $ErrorActionPreference = "Stop"
-          $PSNativeCommandUseErrorActionPreference = $true
-
-          if ($env:PR_BRANCH -notmatch "^issue/(?<issue>[1-9][0-9]*)-[a-z0-9]+(?:-[a-z0-9]+)*$") {
-              throw "Branch must match issue/<number>-<slug>."
-          }
-
-          $issueNumber = [int]$Matches.issue
-          $closingReferences = [regex]::Matches(
-              [string]$env:PR_BODY,
-              "(?im)(?<![A-Za-z])Closes\s+#(?<issue>[1-9][0-9]*)\b"
-          )
-          if ($closingReferences.Count -ne 1) {
-              throw "PR body must contain exactly one Closes #<number>."
-          }
-          if ([int]$closingReferences[0].Groups["issue"].Value -ne $issueNumber) {
-              throw "Branch and PR body must reference the same Issue."
-          }
-
-          $issue = gh api "repos/$($env:REPOSITORY)/issues/$issueNumber" | ConvertFrom-Json
-          if ($null -ne $issue.pull_request) {
-              throw "Closing reference must target an Issue, not a PR."
-          }
-          if ($issue.state -ne "open") {
-              throw "Referenced Issue must be open."
-          }
-
-          $branchPages = gh api --paginate --slurp "repos/$($env:REPOSITORY)/branches?per_page=100" | ConvertFrom-Json
-          $branches = @($branchPages | ForEach-Object { $_ })
-          $issueBranches = @(
-              $branches | Where-Object {
-                  $_.name -match "^issue/$issueNumber-[a-z0-9]+(?:-[a-z0-9]+)*$"
-              }
-          )
-          if ($issueBranches.Count -ne 1 -or $issueBranches[0].name -ne $env:PR_BRANCH) {
-              throw "Issue must have exactly one branch."
-          }
-
-          $pages = gh api --paginate --slurp "repos/$($env:REPOSITORY)/pulls?state=all&per_page=100" | ConvertFrom-Json
-          $pulls = @($pages | ForEach-Object { $_ })
-          $duplicatePattern = "(?im)(?<![A-Za-z])Closes\s+#$issueNumber\b"
-          $duplicates = @(
-              $pulls | Where-Object {
-                  $_.number -ne [int]$env:PR_NUMBER -and
-                  [regex]::IsMatch([string]$_.body, $duplicatePattern)
-              }
-          )
-          if ($duplicates.Count -ne 0) {
-              throw "Issue already has another PR: $($duplicates.number -join ', ')"
-          }
+          ./scripts/work_item_policy.ps1 pull-request -Repository $env:REPOSITORY -PullRequest $env:PR_NUMBER

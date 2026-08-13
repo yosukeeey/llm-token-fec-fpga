@@ -1,0 +1,41 @@
+name: Trusted work item policy
+
+on:
+  pull_request_target:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+  statuses: write
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out trusted policy
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          persist-credentials: false
+      - name: Report work item policy
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          $PSNativeCommandUseErrorActionPreference = $true
+          $statusPath = "repos/$env:REPOSITORY/statuses/$env:HEAD_SHA"
+          gh api --method POST $statusPath -f state=pending -f context=work-item-policy -f description="Work item policy is running"
+          try {
+              ./scripts/work_item_policy.ps1 pull-request -Repository $env:REPOSITORY -PullRequest $env:PR_NUMBER
+              gh api --method POST $statusPath -f state=success -f context=work-item-policy -f description="Work item policy passed"
+          }
+          catch {
+              gh api --method POST $statusPath -f state=failure -f context=work-item-policy -f description="Work item policy failed"
+              throw
+          }
