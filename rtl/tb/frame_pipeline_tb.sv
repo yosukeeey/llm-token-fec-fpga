@@ -16,11 +16,18 @@ module frame_pipeline_tb;
     wire [31:0] handler_error_count;
 
     reg [8*128-1:0] ping_case_id;
+    reg [8*128-1:0] token_case_id;
     reg [(8*MAX_FRAME_BYTES)-1:0] ping_request;
     reg [(8*MAX_FRAME_BYTES)-1:0] ping_response;
+    reg [(8*MAX_FRAME_BYTES)-1:0] token_request;
+    reg [(8*MAX_FRAME_BYTES)-1:0] token_response;
+    reg [(8*MAX_FRAME_BYTES)-1:0] expected_response;
     reg [(8*MAX_FRAME_BYTES)-1:0] unsupported_request;
     integer ping_request_length;
     integer ping_response_length;
+    integer token_request_length;
+    integer token_response_length;
+    integer expected_response_length;
     integer unsupported_request_length;
     integer vector_count;
     integer vector_file;
@@ -49,7 +56,9 @@ module frame_pipeline_tb;
     reg [8*260-1:0] vector_path;
     reg [8*260-1:0] result_path;
 
-    frame_pipeline dut (
+    frame_pipeline #(
+        .INJECT_ERROR_BIT(0)
+    ) dut (
         .clk(clk),
         .reset(reset),
         .in_valid(in_valid),
@@ -149,7 +158,7 @@ module frame_pipeline_tb;
 
             if (out_valid && out_ready) begin
                 if (scoreboard_enabled) begin
-                    expected_byte = ping_response[(expected_response_index * 8) +: 8];
+                    expected_byte = expected_response[(expected_response_index * 8) +: 8];
                     if (out_data !== expected_byte) begin
                         $display(
                             "FAIL response=%0d byte=%0d actual=%02x expected=%02x",
@@ -160,7 +169,7 @@ module frame_pipeline_tb;
                         );
                         failure_count = failure_count + 1;
                     end
-                    if (expected_response_index + 1 == ping_response_length) begin
+                    if (expected_response_index + 1 == expected_response_length) begin
                         expected_response_index = 0;
                         received_response_count = received_response_count + 1;
                     end
@@ -229,7 +238,7 @@ module frame_pipeline_tb;
             unsupported_request[0 +: 8] = protocol_pkg::FRAME_SOF_0;
             unsupported_request[8 +: 8] = protocol_pkg::FRAME_SOF_1;
             unsupported_request[16 +: 8] = protocol_pkg::FRAME_VERSION;
-            unsupported_request[24 +: 8] = protocol_pkg::MESSAGE_TYPE_TOKEN_REQUEST;
+            unsupported_request[24 +: 8] = protocol_pkg::MESSAGE_TYPE_PONG;
             unsupported_request[32 +: 8] = 8'h00;
             unsupported_request[40 +: 8] = 8'h00;
             unsupported_request[48 +: 8] = 8'h03;
@@ -265,6 +274,8 @@ module frame_pipeline_tb;
         input_stall_count = 0;
         output_stall_count = 0;
         expected_response_index = 0;
+        expected_response_length = 0;
+        expected_response = {(8*MAX_FRAME_BYTES){1'b0}};
         received_response_count = 0;
         target_response_count = 0;
         scoreboard_enabled = 1'b0;
@@ -287,8 +298,8 @@ module frame_pipeline_tb;
         end
 
         fields_read = $fscanf(vector_file, "%d\n", vector_count);
-        if ((fields_read != 1) || (vector_count < 1)) begin
-            $fatal(1, "pipeline vector file is empty");
+        if ((fields_read != 1) || (vector_count != 2)) begin
+            $fatal(1, "pipeline vector file must contain two cases");
         end
         fields_read = $fscanf(
             vector_file,
@@ -303,11 +314,26 @@ module frame_pipeline_tb;
             (ping_response_length == 0)) begin
             $fatal(1, "failed to read the first PING pipeline vector");
         end
+        fields_read = $fscanf(
+            vector_file,
+            "%s %d %h %d %h\n",
+            token_case_id,
+            token_request_length,
+            token_request,
+            token_response_length,
+            token_response
+        );
+        if ((fields_read != 5) || (token_request_length == 0) ||
+            (token_response_length == 0)) begin
+            $fatal(1, "failed to read the Hamming Token pipeline vector");
+        end
         $fclose(vector_file);
         build_unsupported_request();
 
         apply_reset();
         scoreboard_enabled = 1'b1;
+        expected_response = ping_response;
+        expected_response_length = ping_response_length;
         received_response_count = 0;
         expected_response_index = 0;
         target_response_count = 2;
@@ -334,6 +360,31 @@ module frame_pipeline_tb;
         end
         scoreboard_enabled = 1'b0;
         record_case("continuous_ping");
+
+        scoreboard_enabled = 1'b1;
+        expected_response = token_response;
+        expected_response_length = token_response_length;
+        received_response_count = 0;
+        expected_response_index = 0;
+        target_response_count = 1;
+        send_repeated_stream(token_request_length, token_request, 1, 1);
+        cycle_count = 0;
+        while ((received_response_count < target_response_count) &&
+               (cycle_count < 5000)) begin
+            @(negedge clk);
+            cycle_count = cycle_count + 1;
+        end
+        if (received_response_count != target_response_count) begin
+            $fatal(1, "Hamming Token response timed out");
+        end
+        if ((crc_error_count != 0) || (length_error_count != 0) ||
+            (version_error_count != 0) || (timeout_error_count != 0) ||
+            (handler_error_count != 0)) begin
+            $display("FAIL valid Hamming Token changed an error counter");
+            failure_count = failure_count + 1;
+        end
+        scoreboard_enabled = 1'b0;
+        record_case(token_case_id);
 
         reject_output_watch = 1'b1;
         handler_count_before = handler_error_count;
@@ -369,6 +420,8 @@ module frame_pipeline_tb;
         received_response_count = 0;
         expected_response_index = 0;
         target_response_count = 1;
+        expected_response = ping_response;
+        expected_response_length = ping_response_length;
         scoreboard_enabled = 1'b1;
         random_output_ready = 1'b1;
         send_repeated_stream(ping_request_length, ping_request, 1, 1);
@@ -388,10 +441,10 @@ module frame_pipeline_tb;
         if (failure_count != 0) begin
             $fatal(1, "frame_pipeline: %0d checks failed", failure_count);
         end
-        if (case_count != 3) begin
+        if (case_count != 4) begin
             $fatal(1, "frame_pipeline: unexpected case count %0d", case_count);
         end
-        $display("frame_pipeline: 3 cases passed");
+        $display("frame_pipeline: 4 cases passed");
         $finish;
     end
 endmodule
