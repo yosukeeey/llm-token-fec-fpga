@@ -217,6 +217,7 @@ try {
 
     Write-Host "== RTL test =="
     & (Join-Path $PSScriptRoot "test_rtl.ps1")
+    & (Join-Path $PSScriptRoot "test_streaming_rtl.ps1")
 }
 finally {
     Pop-Location
