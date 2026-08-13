@@ -92,7 +92,7 @@ try {
     Invoke-FrameCase `
         -Name "frame_rx" `
         -Top "frame_rx_tb" `
-        -ExpectedCases 6 `
+        -ExpectedCases 10 `
         -Sources @(
             "rtl/interfaces/protocol_pkg.sv",
             "rtl/interfaces/stream_assertions.sv",
@@ -103,7 +103,7 @@ try {
     Invoke-FrameCase `
         -Name "frame_tx" `
         -Top "frame_tx_tb" `
-        -ExpectedCases 5 `
+        -ExpectedCases 6 `
         -Sources @(
             "rtl/interfaces/protocol_pkg.sv",
             "rtl/interfaces/stream_assertions.sv",
@@ -128,7 +128,7 @@ try {
     Invoke-FrameCase `
         -Name "frame_pipeline" `
         -Top "frame_pipeline_tb" `
-        -ExpectedCases 4 `
+        -ExpectedCases 8 `
         -VectorFile "protocol_pipeline.txt" `
         -Sources @(
             "rtl/interfaces/protocol_pkg.sv",
