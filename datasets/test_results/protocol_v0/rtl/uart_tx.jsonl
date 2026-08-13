@@ -1,0 +1,7 @@
+{"case_id":"reset_idle_high","implementation":"rtl","output_hex":"01","output_bit_length":1,"status":[],"schema_version":0}
+{"case_id":"byte_00","implementation":"rtl","output_hex":"01","output_bit_length":1,"status":[],"schema_version":0}
+{"case_id":"byte_ff","implementation":"rtl","output_hex":"01","output_bit_length":1,"status":[],"schema_version":0}
+{"case_id":"byte_55","implementation":"rtl","output_hex":"01","output_bit_length":1,"status":[],"schema_version":0}
+{"case_id":"byte_aa","implementation":"rtl","output_hex":"01","output_bit_length":1,"status":[],"schema_version":0}
+{"case_id":"continuous_backpressure","implementation":"rtl","output_hex":"01","output_bit_length":1,"status":[],"schema_version":0}
+{"case_id":"bit_width_center","implementation":"rtl","output_hex":"01","output_bit_length":1,"status":[],"schema_version":0}
