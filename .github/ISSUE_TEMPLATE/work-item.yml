@@ -1,0 +1,32 @@
+name: Work item
+description: Define one independently reviewable change.
+title: ""
+body:
+  - type: textarea
+    id: purpose
+    attributes:
+      label: Purpose
+      description: State the outcome of this Issue.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: List included and excluded work.
+    validations:
+      required: true
+  - type: textarea
+    id: completion
+    attributes:
+      label: Completion criteria
+      description: List observable completion conditions.
+    validations:
+      required: true
+  - type: checkboxes
+    id: isolation
+    attributes:
+      label: Isolation
+      options:
+        - label: This Issue will use one branch, one worktree, and one PR.
+          required: true
