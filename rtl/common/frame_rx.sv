@@ -52,6 +52,7 @@ module frame_rx #(
     reg [31:0] length_error_count_reg;
     reg [31:0] version_error_count_reg;
     reg [31:0] timeout_error_count_reg;
+    reg [0:0] crc_clear;
     reg [7:0] payload_memory [0:MAX_PAYLOAD_BYTES-1];
 
     wire [0:0] crc_input_valid;
@@ -68,7 +69,7 @@ module frame_rx #(
 
     crc32c_stream crc (
         .clk(clk),
-        .reset(reset),
+        .reset(reset || crc_clear),
         .input_valid(crc_input_valid),
         .input_ready(crc_input_ready),
         .input_data(in_data),
@@ -130,8 +131,10 @@ module frame_rx #(
             length_error_count_reg <= 32'h00000000;
             version_error_count_reg <= 32'h00000000;
             timeout_error_count_reg <= 32'h00000000;
+            crc_clear <= 1'b0;
         end
         else begin
+            crc_clear <= 1'b0;
             if (receiving_frame) begin
                 if (input_accepted) begin
                     idle_count <= 32'h00000000;
@@ -141,6 +144,8 @@ module frame_rx #(
                         state <= STATE_SEARCH_0;
                         idle_count <= 32'h00000000;
                         timeout_error_count_reg <= timeout_error_count_reg + 1'b1;
+                        // A completed CRC remains pending while its wire bytes timeout.
+                        crc_clear <= 1'b1;
                     end
                     else begin
                         idle_count <= idle_count + 1'b1;
