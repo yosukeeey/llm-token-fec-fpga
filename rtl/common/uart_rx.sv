@@ -15,7 +15,9 @@ module uart_rx #(
     output wire [0:0] framing_error,
     output wire [0:0] overflow_error
 );
-    localparam integer CLOCKS_PER_BIT = (CLOCK_HZ + (BAUD_RATE / 2)) / BAUD_RATE;
+    localparam integer CLOCKS_PER_BIT = BAUD_RATE > 0
+        ? (CLOCK_HZ + (BAUD_RATE / 2)) / BAUD_RATE
+        : 0;
     localparam integer HALF_CLOCKS_PER_BIT = CLOCKS_PER_BIT / 2;
     localparam [1:0] STATE_IDLE = 2'h0;
     localparam [1:0] STATE_START = 2'h1;
