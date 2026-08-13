@@ -23,12 +23,24 @@ module frame_pipeline_tb;
     reg [(8*MAX_FRAME_BYTES)-1:0] token_response;
     reg [(8*MAX_FRAME_BYTES)-1:0] expected_response;
     reg [(8*MAX_FRAME_BYTES)-1:0] unsupported_request;
+    reg [(8*MAX_FRAME_BYTES)-1:0] mixed_request;
+    reg [(8*MAX_FRAME_BYTES)-1:0] mixed_response;
+    reg [(8*MAX_FRAME_BYTES)-1:0] crc_recovery_request;
+    reg [(8*MAX_FRAME_BYTES)-1:0] malformed_request;
+    reg [(8*MAX_FRAME_BYTES)-1:0] malformed_response;
+    reg [(8*MAX_FRAME_BYTES)-1:0] error_recovery_request;
     integer ping_request_length;
     integer ping_response_length;
     integer token_request_length;
     integer token_response_length;
     integer expected_response_length;
     integer unsupported_request_length;
+    integer mixed_request_length;
+    integer mixed_response_length;
+    integer crc_recovery_request_length;
+    integer malformed_request_length;
+    integer malformed_response_length;
+    integer error_recovery_request_length;
     integer vector_count;
     integer vector_file;
     integer result_file;
@@ -42,10 +54,12 @@ module frame_pipeline_tb;
     integer target_response_count;
     integer cycle_count;
     integer handler_count_before;
+    integer crc_count_before;
     integer byte_index;
     integer repeat_index;
     integer protected_index;
     reg [31:0] unsupported_crc;
+    reg [31:0] constructed_crc;
     reg [7:0] expected_byte;
     reg [7:0] input_lfsr;
     reg [7:0] output_lfsr;
@@ -263,6 +277,162 @@ module frame_pipeline_tb;
         end
     endtask
 
+    task append_bytes;
+        inout [(8*MAX_FRAME_BYTES)-1:0] destination;
+        input integer destination_offset;
+        input [(8*MAX_FRAME_BYTES)-1:0] source;
+        input integer source_length;
+        integer copy_index;
+        begin
+            for (copy_index = 0; copy_index < source_length;
+                 copy_index = copy_index + 1) begin
+                destination[((destination_offset + copy_index) * 8) +: 8] =
+                    source[(copy_index * 8) +: 8];
+            end
+        end
+    endtask
+
+    task finalize_constructed_frame;
+        inout [(8*MAX_FRAME_BYTES)-1:0] frame;
+        input integer frame_length;
+        integer crc_index;
+        begin
+            constructed_crc = 32'hffffffff;
+            for (crc_index = 2; crc_index < (frame_length - 4);
+                 crc_index = crc_index + 1) begin
+                constructed_crc = crc32c_byte(
+                    constructed_crc,
+                    frame[(crc_index * 8) +: 8]
+                );
+            end
+            constructed_crc = constructed_crc ^ 32'hffffffff;
+            frame[((frame_length - 4) * 8) +: 8] = constructed_crc[7:0];
+            frame[((frame_length - 3) * 8) +: 8] = constructed_crc[15:8];
+            frame[((frame_length - 2) * 8) +: 8] = constructed_crc[23:16];
+            frame[((frame_length - 1) * 8) +: 8] = constructed_crc[31:24];
+        end
+    endtask
+
+    task build_stress_frames;
+        integer build_index;
+        begin
+            mixed_request = {(8*MAX_FRAME_BYTES){1'b0}};
+            mixed_request_length = (2 * ping_request_length) + token_request_length;
+            append_bytes(mixed_request, 0, ping_request, ping_request_length);
+            append_bytes(
+                mixed_request,
+                ping_request_length,
+                token_request,
+                token_request_length
+            );
+            append_bytes(
+                mixed_request,
+                ping_request_length + token_request_length,
+                ping_request,
+                ping_request_length
+            );
+
+            mixed_response = {(8*MAX_FRAME_BYTES){1'b0}};
+            mixed_response_length = (2 * ping_response_length) + token_response_length;
+            append_bytes(mixed_response, 0, ping_response, ping_response_length);
+            append_bytes(
+                mixed_response,
+                ping_response_length,
+                token_response,
+                token_response_length
+            );
+            append_bytes(
+                mixed_response,
+                ping_response_length + token_response_length,
+                ping_response,
+                ping_response_length
+            );
+
+            crc_recovery_request = {(8*MAX_FRAME_BYTES){1'b0}};
+            crc_recovery_request_length = token_request_length + ping_request_length;
+            append_bytes(
+                crc_recovery_request,
+                0,
+                token_request,
+                token_request_length
+            );
+            crc_recovery_request[((token_request_length - 1) * 8) +: 8] =
+                crc_recovery_request[((token_request_length - 1) * 8) +: 8] ^ 8'h01;
+            append_bytes(
+                crc_recovery_request,
+                token_request_length,
+                ping_request,
+                ping_request_length
+            );
+
+            malformed_request = {(8*MAX_FRAME_BYTES){1'b0}};
+            malformed_request_length = 20;
+            malformed_request[0 +: 8] = protocol_pkg::FRAME_SOF_0;
+            malformed_request[8 +: 8] = protocol_pkg::FRAME_SOF_1;
+            malformed_request[16 +: 8] = protocol_pkg::FRAME_VERSION;
+            malformed_request[24 +: 8] = protocol_pkg::MESSAGE_TYPE_TOKEN_REQUEST;
+            malformed_request[32 +: 8] = 8'h00;
+            malformed_request[40 +: 8] = 8'h00;
+            malformed_request[48 +: 8] = 8'h08;
+            malformed_request[56 +: 8] = 8'h00;
+            for (build_index = 0; build_index < 8; build_index = build_index + 1) begin
+                malformed_request[((8 + build_index) * 8) +: 8] = build_index + 8'h40;
+            end
+            finalize_constructed_frame(malformed_request, malformed_request_length);
+
+            malformed_response = {(8*MAX_FRAME_BYTES){1'b0}};
+            malformed_response_length = 20;
+            malformed_response[0 +: 8] = protocol_pkg::FRAME_SOF_0;
+            malformed_response[8 +: 8] = protocol_pkg::FRAME_SOF_1;
+            malformed_response[16 +: 8] = protocol_pkg::FRAME_VERSION;
+            malformed_response[24 +: 8] = protocol_pkg::MESSAGE_TYPE_ERROR_RESPONSE;
+            malformed_response[32 +: 8] = 8'h00;
+            malformed_response[40 +: 8] = 8'h00;
+            malformed_response[48 +: 8] = 8'h08;
+            malformed_response[56 +: 8] = 8'h00;
+            malformed_response[64 +: 8] = protocol_pkg::RESULT_FLAG_MALFORMED_REQUEST;
+            malformed_response[72 +: 8] = 8'h00;
+            malformed_response[80 +: 8] = 8'h00;
+            malformed_response[88 +: 8] = 8'h00;
+            malformed_response[96 +: 8] = protocol_pkg::MESSAGE_TYPE_TOKEN_REQUEST;
+            malformed_response[104 +: 8] = 8'h00;
+            malformed_response[112 +: 8] = 8'h00;
+            malformed_response[120 +: 8] = 8'h00;
+            finalize_constructed_frame(malformed_response, malformed_response_length);
+
+            error_recovery_request = {(8*MAX_FRAME_BYTES){1'b0}};
+            error_recovery_request_length = malformed_response_length + ping_request_length;
+            append_bytes(
+                error_recovery_request,
+                0,
+                malformed_response,
+                malformed_response_length
+            );
+            append_bytes(
+                error_recovery_request,
+                malformed_response_length,
+                ping_request,
+                ping_request_length
+            );
+        end
+    endtask
+
+    task wait_for_expected_stream;
+        input integer maximum_cycles;
+        input [8*128-1:0] timeout_name;
+        begin
+            cycle_count = 0;
+            while ((received_response_count < target_response_count) &&
+                   (cycle_count < maximum_cycles)) begin
+                @(negedge clk);
+                cycle_count = cycle_count + 1;
+            end
+            if (received_response_count != target_response_count) begin
+                $fatal(1, "%0s response timed out", timeout_name);
+            end
+        end
+    endtask
+
     initial begin
         clk = 1'b0;
         reset = 1'b1;
@@ -329,6 +499,7 @@ module frame_pipeline_tb;
         end
         $fclose(vector_file);
         build_unsupported_request();
+        build_stress_frames();
 
         apply_reset();
         scoreboard_enabled = 1'b1;
@@ -437,14 +608,111 @@ module frame_pipeline_tb;
         scoreboard_enabled = 1'b0;
         record_case("reset_recovery");
 
+        apply_reset();
+        input_stall_count = 0;
+        output_stall_count = 0;
+        received_response_count = 0;
+        expected_response_index = 0;
+        target_response_count = 1;
+        expected_response = mixed_response;
+        expected_response_length = mixed_response_length;
+        scoreboard_enabled = 1'b1;
+        random_output_ready = 1'b1;
+        send_repeated_stream(mixed_request_length, mixed_request, 1, 1);
+        wait_for_expected_stream(10000, "mixed continuous pipeline");
+        if ((input_stall_count == 0) || (output_stall_count == 0)) begin
+            $display("FAIL mixed pipeline did not exercise independent stalls");
+            failure_count = failure_count + 1;
+        end
+        if ((crc_error_count != 0) || (length_error_count != 0) ||
+            (version_error_count != 0) || (timeout_error_count != 0) ||
+            (handler_error_count != 0)) begin
+            $display("FAIL mixed valid pipeline changed an error counter");
+            failure_count = failure_count + 1;
+        end
+        scoreboard_enabled = 1'b0;
+        record_case("mixed_ping_token_ping");
+
+        crc_count_before = crc_error_count;
+        received_response_count = 0;
+        expected_response_index = 0;
+        target_response_count = 1;
+        expected_response = ping_response;
+        expected_response_length = ping_response_length;
+        scoreboard_enabled = 1'b1;
+        send_repeated_stream(
+            crc_recovery_request_length,
+            crc_recovery_request,
+            1,
+            1
+        );
+        wait_for_expected_stream(3000, "CRC recovery PING");
+        if (crc_error_count != crc_count_before + 1) begin
+            $display("FAIL corrupt Token frame was not counted once");
+            failure_count = failure_count + 1;
+        end
+        if ((length_error_count != 0) || (version_error_count != 0) ||
+            (timeout_error_count != 0) || (handler_error_count != 0)) begin
+            $display("FAIL corrupt Token frame changed a non-CRC counter");
+            failure_count = failure_count + 1;
+        end
+        scoreboard_enabled = 1'b0;
+        record_case("crc_token_ping_recovery");
+
+        handler_count_before = handler_error_count;
+        received_response_count = 0;
+        expected_response_index = 0;
+        target_response_count = 1;
+        expected_response = malformed_response;
+        expected_response_length = malformed_response_length;
+        scoreboard_enabled = 1'b1;
+        send_repeated_stream(malformed_request_length, malformed_request, 1, 1);
+        wait_for_expected_stream(3000, "malformed Token error");
+        if (handler_error_count != handler_count_before + 1) begin
+            $display("FAIL malformed Token error was not counted once");
+            failure_count = failure_count + 1;
+        end
+        if ((crc_error_count != crc_count_before + 1) ||
+            (length_error_count != 0) || (version_error_count != 0) ||
+            (timeout_error_count != 0)) begin
+            $display("FAIL malformed Token changed an RX error counter");
+            failure_count = failure_count + 1;
+        end
+        scoreboard_enabled = 1'b0;
+        record_case("malformed_token_error_response");
+
+        handler_count_before = handler_error_count;
+        received_response_count = 0;
+        expected_response_index = 0;
+        target_response_count = 1;
+        expected_response = ping_response;
+        expected_response_length = ping_response_length;
+        scoreboard_enabled = 1'b1;
+        send_repeated_stream(
+            error_recovery_request_length,
+            error_recovery_request,
+            1,
+            1
+        );
+        wait_for_expected_stream(3000, "ERROR_RESPONSE drain recovery");
+        if (handler_error_count != handler_count_before + 1) begin
+            $display("FAIL input ERROR_RESPONSE was not drained once");
+            failure_count = failure_count + 1;
+        end
+        scoreboard_enabled = 1'b0;
+        reject_output_watch = 1'b1;
+        repeat (40) @(negedge clk);
+        reject_output_watch = 1'b0;
+        record_case("error_response_non_recursive");
+
         $fclose(result_file);
         if (failure_count != 0) begin
             $fatal(1, "frame_pipeline: %0d checks failed", failure_count);
         end
-        if (case_count != 4) begin
+        if (case_count != 8) begin
             $fatal(1, "frame_pipeline: unexpected case count %0d", case_count);
         end
-        $display("frame_pipeline: 4 cases passed");
+        $display("frame_pipeline: 8 cases passed");
         $finish;
     end
 endmodule
