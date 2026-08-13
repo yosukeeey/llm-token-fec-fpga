@@ -263,7 +263,10 @@ throw "Unexpected gh arguments: $argumentText"
     $duplicatePullRequest = [ordered]@{
         number = 7
         body = $validPullRequestBody
-        head = [ordered]@{ ref = "issue/123-existing" }
+        head = [ordered]@{
+            ref = "issue/123-existing"
+            repo = [ordered]@{ full_name = "example/repository" }
+        }
     } | ConvertTo-Json -Depth 4 -Compress
     $env:WORK_ITEM_TEST_PULL_PAGES = "[[$duplicatePullRequest]]"
     Assert-Fail "duplicate PR start rejection" {
@@ -294,7 +297,93 @@ throw "Unexpected gh arguments: $argumentText"
     }
 
     git -C $repositoryPath worktree remove $createdPath
+    git -C $repositoryPath switch "issue/123-test-policy" | Out-Null
+    Assert-Fail "primary checkout rejection" {
+        Push-Location $repositoryPath
+        try {
+            & $workItemPath verify
+        }
+        finally {
+            Pop-Location
+        }
+    }
+    git -C $repositoryPath switch main | Out-Null
     git -C $repositoryPath branch -d "issue/123-test-policy" | Out-Null
+
+    Assert-Fail "uppercase slug start rejection" {
+        Push-Location $repositoryPath
+        try {
+            & $workItemPath start -Issue 123 -Slug "Uppercase" -Base main -WorktreeRoot $worktreeRoot
+        }
+        finally {
+            Pop-Location
+        }
+    }
+    Assert-Fail "uppercase active branch rejection" {
+        & $policyPath active -Repository "example/repository" -Branch "issue/123-Uppercase"
+    }
+
+    $env:WORK_ITEM_TEST_BRANCH_PAGES = '[[{"name":"issue/123-Uppercase"}]]'
+    $env:WORK_ITEM_TEST_PULL_PAGES = "[[]]"
+    Assert-Fail "uppercase remote branch reserves Issue" {
+        & $policyPath available -Repository "example/repository" -Issue 123
+    }
+
+    $env:WORK_ITEM_TEST_BRANCH_PAGES = '[[{"name":"issue/123-conflict"}]]'
+    $env:WORK_ITEM_TEST_PULL_PAGES = "[[]]"
+    Assert-Fail "active branch conflict rejection" {
+        & $policyPath active -Repository "example/repository" -Branch "issue/123-test-policy"
+    }
+
+    $env:WORK_ITEM_TEST_BRANCH_PAGES = '[[{"name":"issue/123-test-policy"}]]'
+    $env:WORK_ITEM_TEST_PULL_PAGES = "[[$duplicatePullRequest]]"
+    Assert-Fail "active PR conflict rejection" {
+        & $policyPath active -Repository "example/repository" -Branch "issue/123-test-policy"
+    }
+
+    $forkPullRequest = [ordered]@{
+        number = 8
+        body = $validPullRequestBody
+        head = [ordered]@{
+            ref = "issue/123-fork"
+            repo = [ordered]@{ full_name = "outside/repository" }
+        }
+    } | ConvertTo-Json -Depth 4 -Compress
+    $env:WORK_ITEM_TEST_BRANCH_PAGES = "[[]]"
+    $env:WORK_ITEM_TEST_PULL_PAGES = "[[$forkPullRequest]]"
+    Assert-Pass "fork PR does not reserve Issue" {
+        & $policyPath available -Repository "example/repository" -Issue 123
+    }
+
+    $wrongBasePullRequest = [ordered]@{
+        number = 9
+        state = "open"
+        body = $validPullRequestBody
+        base = [ordered]@{ ref = "release" }
+        head = [ordered]@{
+            ref = "issue/123-test-policy"
+            repo = [ordered]@{ full_name = "example/repository" }
+        }
+    } | ConvertTo-Json -Depth 4 -Compress
+    $env:WORK_ITEM_TEST_PULL_JSON = $wrongBasePullRequest
+    Assert-Fail "wrong base PR rejection" {
+        & $policyPath pull-request -Repository "example/repository" -PullRequest 9
+    }
+
+    $forkPullRequestRecord = [ordered]@{
+        number = 10
+        state = "open"
+        body = $validPullRequestBody
+        base = [ordered]@{ ref = "main" }
+        head = [ordered]@{
+            ref = "issue/123-test-policy"
+            repo = [ordered]@{ full_name = "outside/repository" }
+        }
+    } | ConvertTo-Json -Depth 4 -Compress
+    $env:WORK_ITEM_TEST_PULL_JSON = $forkPullRequestRecord
+    Assert-Fail "fork PR policy rejection" {
+        & $policyPath pull-request -Repository "example/repository" -PullRequest 10
+    }
 
     $env:WORK_ITEM_TEST_ISSUE_JSON = [ordered]@{
         number = 124
