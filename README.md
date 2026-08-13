@@ -67,6 +67,7 @@ cmake --preset dev-msvc
 cmake --build --preset dev-msvc-release
 ctest --preset dev-msvc-release
 .\scripts\test_rtl.ps1
+.\scripts\test_streaming_rtl.ps1
 ```
 
 Pythonの依存は`uv.lock`、C++の依存は必要になった時点で`vcpkg.json`へ追加し、`builtin-baseline`で固定する。現在のC++ Environment Smoke Testは標準Libraryだけを使う。生成物、Tool本体、cacheは`build/`、vcpkg packageは`vcpkg_installed/`に置き、Git管理しない。
@@ -82,8 +83,9 @@ sw/fec/          Parity、Repetition、Hamming(7,4)
 sw/evaluation/   JSONL schema、Vector生成、Result比較
 sw/cpp/          独立なC++20実装とPython Vector一致Test
 scripts/         Vector生成CLI、Result評価CLI
-rtl/fec/         Parity、Repetition、Hamming(7,4)の組合せRTL
-rtl/tb/          Python Vector駆動の自己検査Testbench
+rtl/common/      Streaming CRC-32Cと同期FIFO
+rtl/fec/         組合せFECとValid/Ready wrapper
+rtl/tb/          Python Vector駆動・Streaming自己検査Testbench
 ```
 
 C++のCRC / FEC / Frame実装は標準Libraryだけを使う。JSONL readerのみ[nlohmann/json](https://github.com/nlohmann/json)を使い、BootstrapがVersionとSHA-256を検証して`build/tools/`へ配置する。PythonとC++は同じ実装を共有せず、固定JSONL Vector経由でbit / byte一致をCTestする。
@@ -108,4 +110,5 @@ RTL検証は固定JSONLからSimulator入力を生成し、Parity 3件、Repetit
 
 ```powershell
 .\scripts\test_rtl.ps1
+.\scripts\test_streaming_rtl.ps1
 ```

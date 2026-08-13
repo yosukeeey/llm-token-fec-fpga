@@ -216,3 +216,7 @@ PythonとC++は実行時にFFIやsubprocessで結合せず、このVersion付き
 * Packet末尾は`last`
 * Byte streamは`data[7:0]`、bit streamは`data[0]`
 * Module間にreadyの組合せloopを作らない
+
+Streaming CRC-32Cは1 cycleに1 byteを受理し、`last`受理の次cycleに結果を出す。空Packetは`start`、`last`、`empty`を同時に立てた1 transferで表す。
+
+同期FIFOは任意の`DEPTH >= 2`を許可し、非2冪も同じwrap規約で処理する。full状態でも同cycleにpopが成立する場合はpushを受理する。FEC wrapperは1段のoutput bufferを持ち、stallがなければ1 cycleに1 transferを処理する。
