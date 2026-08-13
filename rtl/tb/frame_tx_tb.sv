@@ -50,6 +50,8 @@ module frame_tx_tb;
     integer metadata_stall_count;
     integer payload_stall_count;
     integer output_stall_count;
+    integer back_to_back_hold_count;
+    integer max_payload_bytes_accepted;
     integer error_count_before;
     reg [7:0] expected_byte;
     reg [7:0] metadata_lfsr;
@@ -132,6 +134,9 @@ module frame_tx_tb;
 
             if (frame_valid && !frame_ready) begin
                 metadata_stall_count = metadata_stall_count + 1;
+                if (source_vector_index != 0) begin
+                    back_to_back_hold_count = back_to_back_hold_count + 1;
+                end
             end
             if (payload_valid && !payload_ready) begin
                 payload_stall_count = payload_stall_count + 1;
@@ -240,6 +245,8 @@ module frame_tx_tb;
         metadata_stall_count = 0;
         payload_stall_count = 0;
         output_stall_count = 0;
+        back_to_back_hold_count = 0;
+        max_payload_bytes_accepted = 0;
         scoreboard_enabled = 1'b0;
         scoreboard_reset_case = 1'b0;
         reset_frame_complete = 1'b0;
@@ -260,8 +267,9 @@ module frame_tx_tb;
         end
 
         fields_read = $fscanf(vector_file, "%d\n", vector_count);
-        if ((fields_read != 1) || (vector_count != 3)) begin
-            $fatal(1, "Frame TX expects three fixed protocol vectors");
+        if ((fields_read != 1) || (vector_count < 1) ||
+            (vector_count > MAX_VECTOR_COUNT)) begin
+            $fatal(1, "Frame TX vector count is outside testbench capacity");
         end
         for (vector_index = 0; vector_index < vector_count; vector_index = vector_index + 1) begin
             fields_read = $fscanf(
@@ -277,6 +285,10 @@ module frame_tx_tb;
             );
             if (fields_read != 7) begin
                 $fatal(1, "failed to read Frame TX vector %0d", vector_index);
+            end
+            if ((scanned_payload_length > MAX_PAYLOAD_BYTES) ||
+                (scanned_frame_length != scanned_payload_length + 12)) begin
+                $fatal(1, "invalid Frame TX vector length %0d", vector_index);
             end
             vector_case_ids[vector_index] = scanned_case_id;
             vector_frame_lengths[vector_index] = scanned_frame_length;
@@ -316,6 +328,10 @@ module frame_tx_tb;
             end
 
             if (last_payload_accepted) begin
+                if (vector_payload_lengths[payload_source_vector] ==
+                    MAX_PAYLOAD_BYTES) begin
+                    max_payload_bytes_accepted = max_payload_bytes_accepted + 1;
+                end
                 payload_pending = 1'b0;
                 payload_valid = 1'b0;
                 if (payload_source_index + 1 ==
@@ -331,7 +347,7 @@ module frame_tx_tb;
                 !metadata_pending &&
                 !payload_active &&
                 (source_vector_index < vector_count) &&
-                metadata_lfsr[0]
+                ((source_vector_index == 1) || metadata_lfsr[0])
             ) begin
                 metadata_pending = 1'b1;
                 frame_valid = 1'b1;
@@ -373,9 +389,17 @@ module frame_tx_tb;
         if (
             (metadata_stall_count == 0) ||
             (payload_stall_count == 0) ||
-            (output_stall_count == 0)
+            (output_stall_count == 0) ||
+            (back_to_back_hold_count == 0)
         ) begin
             $display("FAIL independent stream stalls were not exercised");
+            failure_count = failure_count + 1;
+        end
+        if (max_payload_bytes_accepted != MAX_PAYLOAD_BYTES) begin
+            $display(
+                "FAIL maximum payload transferred %0d bytes",
+                max_payload_bytes_accepted
+            );
             failure_count = failure_count + 1;
         end
 
@@ -437,10 +461,10 @@ module frame_tx_tb;
         if (failure_count != 0) begin
             $fatal(1, "frame_tx: %0d checks failed", failure_count);
         end
-        if (case_count != 5) begin
+        if (case_count != vector_count + 2) begin
             $fatal(1, "frame_tx: unexpected case count %0d", case_count);
         end
-        $display("frame_tx: 5 cases passed");
+        $display("frame_tx: %0d cases passed", case_count);
         $finish;
     end
 endmodule
