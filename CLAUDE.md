@@ -28,6 +28,19 @@ After changes:
 2. Inspect the diff.
 3. Confirm no unrelated changes.
 
+## Work Item Isolation
+
+Before modifying tracked files:
+
+1. Use one existing GitHub issue.
+2. Use branch `issue/<number>-<slug>`.
+3. Use one dedicated worktree for that branch.
+4. Run `scripts/work_item.ps1 verify`.
+
+Use one PR per issue. The PR body must contain exactly one `Closes #<number>` matching the branch.
+
+Do not edit or commit on `main`. If the requested scope exceeds the issue, stop and create another issue.
+
 ## Communication
 
 Keep output minimal:
@@ -35,6 +48,11 @@ Keep output minimal:
 * changed
 * verified
 * remaining issue, if any
+
+When communicating in Japanese, use short noun phrases where clear:
+
+* Prefer `実在確認。` over `実在するか確認します。`
+* Omit polite endings such as `〜します` and `〜していきます` when unnecessary.
 
 Do not repeat the task or explain obvious code.
 
