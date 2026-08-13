@@ -54,12 +54,14 @@ module frame_pipeline #(
     wire [0:0]  ping_response_ready;
     wire [0:0]  received_frame_accepted;
     wire [0:0]  received_payload_accepted;
+    wire [0:0]  handler_response_payload_accepted;
     wire [0:0]  handler_error_response_accepted;
     wire [0:0]  unsupported_drop_accepted;
     wire [7:0]  transmit_message_type;
     wire [15:0] transmit_flags;
     wire [15:0] transmit_payload_length;
     reg [1:0]   payload_route;
+    reg [0:0]   token_in_flight;
     reg [31:0]  handler_error_count_reg;
 
     frame_rx #(
@@ -137,7 +139,8 @@ module frame_pipeline #(
     assign token_request =
         received_message_type == protocol_pkg::MESSAGE_TYPE_TOKEN_REQUEST;
     assign handler_request_valid = received_frame_valid && token_request;
-    assign ping_response_valid = received_frame_valid && supported_ping;
+    assign ping_response_valid =
+        received_frame_valid && supported_ping && !token_in_flight;
 
     // Handler responses take priority so its buffered payload cannot block new requests.
     assign transmit_frame_valid = handler_response_valid || ping_response_valid;
@@ -152,9 +155,12 @@ module frame_pipeline #(
     assign ping_response_ready = transmit_frame_ready && !handler_response_valid;
     assign handler_response_payload_ready = transmit_payload_ready;
 
-    assign received_frame_ready = token_request
-        ? handler_request_ready
-        : (supported_ping ? ping_response_ready : 1'b1);
+    // A later response must not pass a Token request while its codec is running.
+    assign received_frame_ready = token_in_flight
+        ? 1'b0
+        : (token_request
+            ? handler_request_ready
+            : (supported_ping ? ping_response_ready : 1'b1));
     assign received_frame_accepted = received_frame_valid && received_frame_ready;
 
     // The route is fixed from metadata acceptance through the final payload byte.
@@ -162,6 +168,8 @@ module frame_pipeline #(
         ? handler_payload_ready
         : ((payload_route == ROUTE_DROP) && !reset);
     assign received_payload_accepted = received_payload_valid && received_payload_ready;
+    assign handler_response_payload_accepted =
+        handler_response_payload_valid && handler_response_payload_ready;
     assign handler_error_response_accepted =
         handler_response_valid && handler_response_ready &&
         (handler_response_message_type == protocol_pkg::MESSAGE_TYPE_ERROR_RESPONSE);
@@ -172,9 +180,19 @@ module frame_pipeline #(
     always @(posedge clk) begin
         if (reset) begin
             payload_route <= ROUTE_IDLE;
+            token_in_flight <= 1'b0;
             handler_error_count_reg <= 32'h00000000;
         end
         else begin
+            if (received_frame_accepted && token_request) begin
+                token_in_flight <= 1'b1;
+            end
+            else if (
+                handler_response_payload_accepted && handler_response_payload_last
+            ) begin
+                token_in_flight <= 1'b0;
+            end
+
             if (received_frame_accepted && (received_payload_length != 0)) begin
                 if (token_request) begin
                     payload_route <= ROUTE_TOKEN;
