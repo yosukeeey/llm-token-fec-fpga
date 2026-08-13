@@ -31,7 +31,7 @@ Closes #123
 
 Keep the template headings unchanged so the work record remains machine-readable. Record exact validation commands and their results separately. Use `None` for empty fields. Do not add authorship or generator metadata.
 
-The trusted default-branch workflow runs the same `scripts/work_item_policy.ps1` used locally and reports `work-item-policy` on the PR head commit. The `main protection` Ruleset requires this status, a PR, the latest base branch, merge commits, resolved review threads, and blocks deletion and force push.
+The trusted default-branch workflow runs the same `scripts/work_item_policy.ps1` used locally and reports `work-item-policy` on the PR head commit. The `main protection` Ruleset requires this GitHub Actions status, a PR, the latest base branch, merge commits, resolved review threads, and blocks deletion and force push.
 
 ## Cleanup
 
