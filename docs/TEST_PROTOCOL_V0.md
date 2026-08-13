@@ -220,3 +220,11 @@ PythonとC++は実行時にFFIやsubprocessで結合せず、このVersion付き
 Streaming CRC-32Cは1 cycleに1 byteを受理し、`last`受理の次cycleに結果を出す。空Packetは`start`、`last`、`empty`を同時に立てた1 transferで表す。
 
 同期FIFOは任意の`DEPTH >= 2`を許可し、非2冪も同じwrap規約で処理する。full状態でも同cycleにpopが成立する場合はpushを受理する。FEC wrapperは1段のoutput bufferを持ち、stallがなければ1 cycleに1 transferを処理する。
+
+## UART transport
+
+Basys 3のUSB-UARTは100 MHz clock、115200 baud、8 data bits、parityなし、1 stop bit、idle Highを使用する。data bitはLSB-firstで送る。UART用の別clockは生成せず、`round(100000000 / 115200) = 868` clocks/bitのclock enableで動作させる。
+
+868 clocks/bitの実効baudは約115207.37 baudで、公称値に対する誤差は約+64 ppm（+0.0064%）。RXは2段synchronizer後に各bit中央をsampleし、stop bitがLowのbyteは破棄する。
+
+RX/TX FIFOは各2048 bytesとする。最大1036-byte Frameを1件保持したまま内部Pipelineがbackpressureを返しても、次のUART burstを受ける余裕を確保するためである。FIFO overflowとUART framing errorは個別に計数し、framing error時は部分Frameを破棄して次のSOFから再同期する。
