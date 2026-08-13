@@ -3,30 +3,52 @@ description: Define one independently reviewable change.
 title: ""
 body:
   - type: textarea
-    id: purpose
+    id: objective
     attributes:
-      label: Purpose
-      description: State the outcome of this Issue.
+      label: Objective
+      description: State one observable outcome.
+      placeholder: The completed system can...
     validations:
       required: true
   - type: textarea
-    id: scope
+    id: in_scope
     attributes:
-      label: Scope
-      description: List included and excluded work.
+      label: In scope
+      description: List files, components, and behavior included in this Issue.
     validations:
       required: true
   - type: textarea
-    id: completion
+    id: out_of_scope
     attributes:
-      label: Completion criteria
-      description: List observable completion conditions.
+      label: Out of scope
+      description: List adjacent work excluded from this Issue. Enter None when empty.
+    validations:
+      required: true
+  - type: textarea
+    id: constraints
+    attributes:
+      label: Constraints
+      description: Record hardware, protocol, compatibility, safety, and dependency constraints. Enter None when empty.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: List independently observable pass conditions.
+    validations:
+      required: true
+  - type: textarea
+    id: validation
+    attributes:
+      label: Validation
+      description: List exact commands and required evidence.
     validations:
       required: true
   - type: checkboxes
     id: isolation
     attributes:
-      label: Isolation
+      label: Work item isolation
       options:
         - label: This Issue will use one branch, one worktree, and one PR.
           required: true
