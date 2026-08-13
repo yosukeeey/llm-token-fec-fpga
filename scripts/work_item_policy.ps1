@@ -262,8 +262,11 @@ function Get-WorkItemPullRequests {
     return @(
         Get-GitHubPagedItems "repos/$RepositoryName/pulls?state=all&per_page=100" |
             Where-Object {
-                $_.head.ref -match $branchExpression -or
-                [regex]::IsMatch([string]$_.body, $closingExpression)
+                $null -ne $_.head.repo -and
+                $_.head.repo.full_name -eq $RepositoryName -and (
+                    $_.head.ref -match $branchExpression -or
+                    [regex]::IsMatch([string]$_.body, $closingExpression)
+                )
             }
     )
 }
@@ -296,7 +299,7 @@ switch ($Command) {
     }
     "active" {
         Assert-WorkItemRepository $Repository
-        if ($Branch -notmatch $branchPattern) {
+        if ($Branch -cnotmatch $branchPattern) {
             throw "Branch must match issue/<number>-<slug>."
         }
         $issueNumber = [int]$Matches.issue
@@ -341,7 +344,7 @@ switch ($Command) {
         }
 
         $Branch = [string]$pullRequestRecord.head.ref
-        if ($Branch -notmatch $branchPattern) {
+        if ($Branch -cnotmatch $branchPattern) {
             throw "Branch must match issue/<number>-<slug>."
         }
         $issueNumber = [int]$Matches.issue
