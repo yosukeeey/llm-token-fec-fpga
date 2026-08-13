@@ -3,8 +3,9 @@ module uart_tx_tb;
     localparam integer BAUD_RATE = 115_200;
     localparam integer CLKS_PER_BIT = (CLOCK_HZ + (BAUD_RATE / 2)) / BAUD_RATE;
     localparam integer EFFECTIVE_BAUD = CLOCK_HZ / CLKS_PER_BIT;
-    localparam integer ERROR_PPM =
-        ((EFFECTIVE_BAUD - BAUD_RATE) * 1_000_000) / BAUD_RATE;
+    localparam [63:0] ERROR_PPM =
+        ((64'd100_000_000 - (64'd115_200 * CLKS_PER_BIT)) * 64'd1_000_000) /
+        (64'd115_200 * CLKS_PER_BIT);
 
     reg [0:0]  clk;
     reg [0:0]  reset;
@@ -171,7 +172,7 @@ module uart_tx_tb;
             ERROR_PPM
         );
         if ((CLKS_PER_BIT != 868) || (EFFECTIVE_BAUD != 115207) ||
-            (ERROR_PPM != 60)) begin
+            (ERROR_PPM != 64)) begin
             $display("FAIL UART default timing calculation");
             failure_count = failure_count + 1;
         end
