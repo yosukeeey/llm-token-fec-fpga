@@ -41,12 +41,25 @@ module frame_rx_tb;
     reg [8*MAX_PAYLOAD_BYTES-1:0] expected_payload;
     reg [8*MAX_FRAME_BYTES-1:0] saved_frame;
     reg [8*MAX_PAYLOAD_BYTES-1:0] saved_payload;
+    reg [8*MAX_FRAME_BYTES-1:0] second_frame;
+    reg [8*MAX_PAYLOAD_BYTES-1:0] second_payload;
+    reg [8*MAX_FRAME_BYTES-1:0] max_frame;
     integer saved_frame_length;
     integer saved_message_type;
     integer saved_flags;
     integer saved_payload_length;
+    integer second_frame_length;
+    integer second_message_type;
+    integer second_flags;
+    integer second_payload_length;
+    integer max_frame_length;
+    integer max_message_type;
+    integer max_flags;
+    integer max_vector_found;
     reg [7:0] held_payload;
     reg [0:0] held_last;
+    reg [8*MAX_FRAME_BYTES-1:0] sof_payload_frame;
+    reg [8*MAX_PAYLOAD_BYTES-1:0] sof_payload;
 
     frame_rx #(
         .MAX_PAYLOAD_BYTES(MAX_PAYLOAD_BYTES),
@@ -107,6 +120,44 @@ module frame_rx_tb;
         end
     endtask
 
+    task check_max_payload_frame;
+        input integer wanted_message_type;
+        input integer wanted_flags;
+        integer payload_index;
+        begin
+            while (frame_valid !== 1'b1) begin
+                @(negedge clk);
+            end
+            if (
+                (message_type !== wanted_message_type[7:0]) ||
+                (flags !== wanted_flags[15:0]) ||
+                (payload_length !== MAX_PAYLOAD_BYTES)
+            ) begin
+                $display("FAIL maximum payload metadata");
+                failure_count = failure_count + 1;
+            end
+            frame_ready = 1'b1;
+            @(negedge clk);
+            frame_ready = 1'b0;
+            for (payload_index = 0; payload_index < MAX_PAYLOAD_BYTES;
+                 payload_index = payload_index + 1) begin
+                while (payload_valid !== 1'b1) begin
+                    @(negedge clk);
+                end
+                if (
+                    (payload_data !== payload_index[7:0]) ||
+                    (payload_last !== (payload_index == MAX_PAYLOAD_BYTES - 1))
+                ) begin
+                    $display("FAIL maximum payload byte %0d", payload_index);
+                    failure_count = failure_count + 1;
+                end
+                payload_ready = 1'b1;
+                @(negedge clk);
+                payload_ready = 1'b0;
+            end
+        end
+    endtask
+
     task send_byte;
         input [7:0] value;
         begin
@@ -133,6 +184,43 @@ module frame_rx_tb;
                 end
                 send_byte(value);
             end
+        end
+    endtask
+
+    task send_frame_range;
+        input integer first_byte;
+        input integer final_byte;
+        input [8*MAX_FRAME_BYTES-1:0] packed_frame;
+        begin
+            for (byte_index = first_byte; byte_index <= final_byte;
+                 byte_index = byte_index + 1) begin
+                send_byte(packed_frame[byte_index*8 +: 8]);
+            end
+        end
+    endtask
+
+    task send_two_frames_continuous;
+        input integer first_length;
+        input [8*MAX_FRAME_BYTES-1:0] first_frame;
+        input integer second_length;
+        input [8*MAX_FRAME_BYTES-1:0] following_frame;
+        integer source_index;
+        begin
+            in_valid = 1'b1;
+            for (source_index = 0; source_index < first_length + second_length;
+                 source_index = source_index + 1) begin
+                if (source_index < first_length) begin
+                    in_data = first_frame[source_index*8 +: 8];
+                end
+                else begin
+                    in_data = following_frame[(source_index-first_length)*8 +: 8];
+                end
+                while (in_ready !== 1'b1) begin
+                    @(negedge clk);
+                end
+                @(negedge clk);
+            end
+            in_valid = 1'b0;
         end
     endtask
 
@@ -217,6 +305,55 @@ module frame_rx_tb;
         end
     endtask
 
+    task check_frame_random_stalls;
+        input integer wanted_message_type;
+        input integer wanted_flags;
+        input integer wanted_payload_length;
+        input [8*MAX_PAYLOAD_BYTES-1:0] wanted_payload;
+        integer payload_index;
+        integer stall_cycles;
+        integer lfsr;
+        begin
+            lfsr = 16'h1d3f;
+            while (frame_valid !== 1'b1) begin
+                @(negedge clk);
+            end
+            if (
+                (message_type !== wanted_message_type[7:0]) ||
+                (flags !== wanted_flags[15:0]) ||
+                (payload_length !== wanted_payload_length[15:0])
+            ) begin
+                $display("FAIL random-stall metadata");
+                failure_count = failure_count + 1;
+            end
+            stall_cycles = (lfsr & 3) + 1;
+            repeat (stall_cycles) @(negedge clk);
+            frame_ready = 1'b1;
+            @(negedge clk);
+            frame_ready = 1'b0;
+
+            for (payload_index = 0; payload_index < wanted_payload_length;
+                 payload_index = payload_index + 1) begin
+                while (payload_valid !== 1'b1) begin
+                    @(negedge clk);
+                end
+                if (
+                    (payload_data !== wanted_payload[payload_index*8 +: 8]) ||
+                    (payload_last !== (payload_index == wanted_payload_length - 1))
+                ) begin
+                    $display("FAIL random-stall payload byte %0d", payload_index);
+                    failure_count = failure_count + 1;
+                end
+                lfsr = (lfsr >> 1) ^ ((lfsr & 1) ? 16'hb400 : 0);
+                stall_cycles = lfsr & 3;
+                repeat (stall_cycles) @(negedge clk);
+                payload_ready = 1'b1;
+                @(negedge clk);
+                payload_ready = 1'b0;
+            end
+        end
+    endtask
+
     task record_pass;
         input [8*64-1:0] case_id;
         begin
@@ -226,8 +363,14 @@ module frame_rx_tb;
                 case_id
             );
             result_count = result_count + 1;
+            $fflush(result_file);
         end
     endtask
+
+    initial begin
+        repeat (20000) @(posedge clk);
+        $fatal(1, "frame_rx testbench watchdog expired");
+    end
 
     initial begin
         clk = 1'b0;
@@ -238,6 +381,11 @@ module frame_rx_tb;
         payload_ready = 1'b0;
         result_count = 0;
         failure_count = 0;
+        max_vector_found = 0;
+        sof_payload_frame = '0;
+        sof_payload_frame[0 +: 112] = 112'hb8ebaf785aa50002000001005aa5;
+        sof_payload = '0;
+        sof_payload[0 +: 16] = 16'h5aa5;
 
         if (!$value$plusargs("VECTOR_FILE=%s", vector_path)) begin
             $fatal(1, "VECTOR_FILE plusarg is required");
@@ -287,17 +435,44 @@ module frame_rx_tb;
                 saved_flags = expected_flags;
                 saved_payload_length = expected_payload_length;
             end
+            if (vector_index == 1) begin
+                second_frame = frame_value;
+                second_payload = expected_payload;
+                second_frame_length = frame_length_value;
+                second_message_type = expected_message_type;
+                second_flags = expected_flags;
+                second_payload_length = expected_payload_length;
+            end
+            if (expected_payload_length == MAX_PAYLOAD_BYTES) begin
+                max_frame = frame_value;
+                max_frame_length = frame_length_value;
+                max_message_type = expected_message_type;
+                max_flags = expected_flags;
+                max_vector_found = 1;
+            end
 
             send_frame(frame_length_value, frame_value, -1);
-            check_frame(
-                expected_message_type,
-                expected_flags,
-                expected_payload_length,
-                expected_payload,
-                0
-            );
+            if (expected_payload_length == MAX_PAYLOAD_BYTES) begin
+                check_max_payload_frame(expected_message_type, expected_flags);
+            end
+            else begin
+                check_frame(
+                    expected_message_type,
+                    expected_flags,
+                    expected_payload_length,
+                    expected_payload,
+                    0
+                );
+            end
         end
         record_pass("fixed_vectors");
+
+        if (max_vector_found == 0) begin
+            $fatal(1, "maximum payload vector is required");
+        end
+        send_frame(max_frame_length, max_frame, -1);
+        check_max_payload_frame(max_message_type, max_flags);
+        record_pass("max_payload");
 
         send_frame(saved_frame_length, saved_frame, -1);
         check_frame(
@@ -392,15 +567,68 @@ module frame_rx_tb;
         );
         record_pass("reset_recovery");
 
+        send_byte(8'h00);
+        send_byte(8'h3c);
+        send_byte(protocol_pkg::FRAME_SOF_0);
+        send_byte(protocol_pkg::FRAME_SOF_0);
+        send_byte(protocol_pkg::FRAME_SOF_1);
+        send_frame_range(2, 13, sof_payload_frame);
+        check_frame(1, 0, 2, sof_payload, 0);
+        record_pass("sof_resynchronization");
+
+        send_frame_range(0, 2, sof_payload_frame);
+        repeat (IDLE_TIMEOUT_CYCLES + 1) @(negedge clk);
+        send_frame(14, sof_payload_frame, -1);
+        check_frame(1, 0, 2, sof_payload, 0);
+
+        send_frame_range(0, 8, sof_payload_frame);
+        repeat (IDLE_TIMEOUT_CYCLES + 1) @(negedge clk);
+        send_frame(14, sof_payload_frame, -1);
+        check_frame(1, 0, 2, sof_payload, 0);
+
+        send_frame_range(0, 10, sof_payload_frame);
+        repeat (IDLE_TIMEOUT_CYCLES + 1) @(negedge clk);
+        send_frame(14, sof_payload_frame, -1);
+        check_frame(1, 0, 2, sof_payload, 0);
+        if (timeout_error_count !== 3) begin
+            $display("FAIL timeout positions count=%0d", timeout_error_count);
+            failure_count = failure_count + 1;
+        end
+        record_pass("timeout_positions");
+
+        fork
+            send_two_frames_continuous(
+                saved_frame_length,
+                saved_frame,
+                second_frame_length,
+                second_frame
+            );
+            begin
+                check_frame_random_stalls(
+                    saved_message_type,
+                    saved_flags,
+                    saved_payload_length,
+                    saved_payload
+                );
+                check_frame_random_stalls(
+                    second_message_type,
+                    second_flags,
+                    second_payload_length,
+                    second_payload
+                );
+            end
+        join
+        record_pass("continuous_source_random_stalls");
+
         $fclose(vector_file);
         $fclose(result_file);
         if (failure_count != 0) begin
             $fatal(1, "frame_rx: %0d checks failed", failure_count);
         end
-        if (result_count != 6) begin
+        if (result_count != 10) begin
             $fatal(1, "frame_rx: unexpected result count %0d", result_count);
         end
-        $display("frame_rx: 6 cases passed");
+        $display("frame_rx: 10 cases passed");
         $finish;
     end
 endmodule
