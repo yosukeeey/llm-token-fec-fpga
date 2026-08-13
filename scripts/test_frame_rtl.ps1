@@ -37,7 +37,8 @@ function Invoke-FrameCase {
         [string]$Name,
         [string]$Top,
         [string[]]$Sources,
-        [int]$ExpectedCases
+        [int]$ExpectedCases,
+        [string]$VectorFile = "protocol.txt"
     )
 
     $simulation = Join-Path $simRoot "$Name.vvp"
@@ -51,7 +52,7 @@ function Invoke-FrameCase {
     & $iverilog @compileArguments
     Assert-NativeSuccess "$Name RTL compile"
 
-    $vectorPath = Convert-ToSimulatorPath (Join-Path $rtlVectorRoot "protocol.txt")
+    $vectorPath = Convert-ToSimulatorPath (Join-Path $rtlVectorRoot $VectorFile)
     $resultPath = Join-Path $resultRoot "$Name.jsonl"
     New-Item -ItemType File -Path $resultPath -Force | Out-Null
     $simulatorResultPath = Convert-ToSimulatorPath $resultPath
@@ -109,6 +110,39 @@ try {
             "rtl/common/crc32c_stream.sv",
             "rtl/common/frame_tx.sv",
             "rtl/tb/frame_tx_tb.sv"
+        )
+    Invoke-FrameCase `
+        -Name "token_request_handler" `
+        -Top "token_request_handler_tb" `
+        -ExpectedCases 6 `
+        -Sources @(
+            "rtl/interfaces/protocol_pkg.sv",
+            "rtl/interfaces/stream_assertions.sv",
+            "rtl/fec/repetition_encoder.sv",
+            "rtl/fec/majority_decoder.sv",
+            "rtl/fec/hamming74_encoder.sv",
+            "rtl/fec/hamming74_decoder.sv",
+            "rtl/common/token_request_handler.sv",
+            "rtl/tb/token_request_handler_tb.sv"
+        )
+    Invoke-FrameCase `
+        -Name "frame_pipeline" `
+        -Top "frame_pipeline_tb" `
+        -ExpectedCases 4 `
+        -VectorFile "protocol_pipeline.txt" `
+        -Sources @(
+            "rtl/interfaces/protocol_pkg.sv",
+            "rtl/interfaces/stream_assertions.sv",
+            "rtl/fec/repetition_encoder.sv",
+            "rtl/fec/majority_decoder.sv",
+            "rtl/fec/hamming74_encoder.sv",
+            "rtl/fec/hamming74_decoder.sv",
+            "rtl/common/crc32c_stream.sv",
+            "rtl/common/frame_rx.sv",
+            "rtl/common/frame_tx.sv",
+            "rtl/common/token_request_handler.sv",
+            "rtl/top/frame_pipeline.sv",
+            "rtl/tb/frame_pipeline_tb.sv"
         )
 }
 finally {
