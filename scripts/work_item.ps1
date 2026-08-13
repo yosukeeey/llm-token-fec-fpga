@@ -42,9 +42,17 @@ if ($Command -eq "start") {
     }
 
     $branch = "issue/$Issue-$Slug"
-    $existingBranch = Invoke-Git -Arguments @("branch", "--list", $branch) -WorkingDirectory $repositoryRoot
-    if ($existingBranch.Count -ne 0) {
-        throw "Branch already exists: $branch"
+    $existingBranches = @(
+        Invoke-Git -Arguments @(
+            "branch",
+            "--all",
+            "--list",
+            "issue/$Issue-*",
+            "remotes/origin/issue/$Issue-*"
+        ) -WorkingDirectory $repositoryRoot
+    )
+    if ($existingBranches.Count -ne 0) {
+        throw "Issue already has a branch: $($existingBranches.Trim() -join ', ')"
     }
 
     if ([string]::IsNullOrWhiteSpace($WorktreeRoot)) {

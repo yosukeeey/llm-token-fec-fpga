@@ -49,6 +49,17 @@ jobs:
               throw "Referenced Issue must be open."
           }
 
+          $branchPages = gh api --paginate --slurp "repos/$($env:REPOSITORY)/branches?per_page=100" | ConvertFrom-Json
+          $branches = @($branchPages | ForEach-Object { $_ })
+          $issueBranches = @(
+              $branches | Where-Object {
+                  $_.name -match "^issue/$issueNumber-[a-z0-9]+(?:-[a-z0-9]+)*$"
+              }
+          )
+          if ($issueBranches.Count -ne 1 -or $issueBranches[0].name -ne $env:PR_BRANCH) {
+              throw "Issue must have exactly one branch."
+          }
+
           $pages = gh api --paginate --slurp "repos/$($env:REPOSITORY)/pulls?state=all&per_page=100" | ConvertFrom-Json
           $pulls = @($pages | ForEach-Object { $_ })
           $duplicatePattern = "(?im)(?<![A-Za-z])Closes\s+#$issueNumber\b"
