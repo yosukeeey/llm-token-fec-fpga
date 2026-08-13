@@ -27,6 +27,8 @@ Push the Issue branch and create one Draft PR. Include exactly one matching clos
 Closes #123
 ```
 
+Keep the template headings unchanged so the work record remains machine-readable. Record exact validation commands and their results separately. Use `None` for empty fields. Do not add authorship or generator metadata.
+
 ## Cleanup
 
 After merging the PR, remove its worktree and delete the local branch.
