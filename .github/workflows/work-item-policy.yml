@@ -1,6 +1,8 @@
 name: Work item policy
 
 on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
   pull_request_target:
     types: [opened, edited, synchronize, reopened]
 
@@ -16,7 +18,7 @@ jobs:
       - name: Check out trusted policy
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          ref: ${{ github.event.pull_request.base.sha }}
+          ref: ${{ github.event_name == 'pull_request_target' && github.event.pull_request.base.sha || github.event.pull_request.head.sha }}
           persist-credentials: false
       - name: Validate Issue and PR isolation
         shell: pwsh
