@@ -1,0 +1,5 @@
+{"case_id":"repetition-r1-errors-none","implementation":"rtl","output_hex":"a5","output_bit_length":8,"status":[],"schema_version":0}
+{"case_id":"repetition-r3-errors-none","implementation":"rtl","output_hex":"a5","output_bit_length":8,"status":[],"schema_version":0}
+{"case_id":"repetition-r3-errors-2","implementation":"rtl","output_hex":"a5","output_bit_length":8,"status":["FEC_CORRECTED"],"schema_version":0}
+{"case_id":"repetition-r3-errors-2-5","implementation":"rtl","output_hex":"a5","output_bit_length":8,"status":["FEC_CORRECTED"],"schema_version":0}
+{"case_id":"repetition-r3-errors-0-1","implementation":"rtl","output_hex":"a4","output_bit_length":8,"status":["FEC_CORRECTED"],"schema_version":0}

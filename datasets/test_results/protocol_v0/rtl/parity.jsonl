@@ -1,0 +1,3 @@
+{"case_id":"parity-empty","implementation":"rtl","output_hex":"00","output_bit_length":1,"status":[],"schema_version":0}
+{"case_id":"parity-a5","implementation":"rtl","output_hex":"00","output_bit_length":1,"status":[],"schema_version":0}
+{"case_id":"parity-one","implementation":"rtl","output_hex":"01","output_bit_length":1,"status":[],"schema_version":0}

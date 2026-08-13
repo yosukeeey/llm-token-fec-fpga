@@ -1,0 +1,6 @@
+{"case_id":"token_handler_hamming","implementation":"rtl","output_hex":"01","output_bit_length":1,"status":[],"schema_version":0}
+{"case_id":"token_handler_none","implementation":"rtl","output_hex":"01","output_bit_length":1,"status":[],"schema_version":0}
+{"case_id":"token_handler_repetition_r3","implementation":"rtl","output_hex":"01","output_bit_length":1,"status":[],"schema_version":0}
+{"case_id":"token_handler_malformed","implementation":"rtl","output_hex":"01","output_bit_length":1,"status":[],"schema_version":0}
+{"case_id":"token_handler_version","implementation":"rtl","output_hex":"01","output_bit_length":1,"status":[],"schema_version":0}
+{"case_id":"token_handler_protection","implementation":"rtl","output_hex":"01","output_bit_length":1,"status":[],"schema_version":0}

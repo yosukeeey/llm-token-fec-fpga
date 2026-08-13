@@ -1,0 +1,9 @@
+
+# Format: <type>(<scope>): <summary>
+# Example: feat(rtl): add Hamming decoder
+#
+# Types: feat, fix, test, refactor, docs, build, chore, ci, perf, revert
+# Scope: lowercase letters, digits, dot, slash, underscore, or hyphen
+# Summary: 72 characters or fewer, with no trailing period
+#
+# Keep one purpose per commit. Add a body only when the reason is not obvious.
