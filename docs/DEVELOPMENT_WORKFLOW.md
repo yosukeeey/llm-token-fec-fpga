@@ -33,6 +33,12 @@ Keep the template headings unchanged so the work record remains machine-readable
 
 The trusted default-branch workflow runs the same `scripts/work_item_policy.ps1` used locally and reports `work-item-policy` on the PR head commit. The `main protection` Ruleset requires this GitHub Actions status, a PR, the latest base branch, merge commits, resolved review threads, and blocks deletion and force push.
 
+Issue edits, closure, reopening, and Issue branch deletion refresh every open work item. A daily trusted scan detects branch creation. Request an immediate full scan after changing branch inventory when validation cannot wait for the schedule.
+
+```powershell
+gh api --method POST repos/{owner}/{repo}/dispatches -f event_type=work-item-refresh
+```
+
 ## Cleanup
 
 After merging the PR, remove its worktree and delete the local branch.
