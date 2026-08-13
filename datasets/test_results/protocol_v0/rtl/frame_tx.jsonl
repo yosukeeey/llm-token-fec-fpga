@@ -1,0 +1,5 @@
+{"case_id":"frame-v0-ping","implementation":"rtl","output_hex":"01","output_bit_length":1,"status":[],"schema_version":0}
+{"case_id":"frame-v0-token-request-v1","implementation":"rtl","output_hex":"01","output_bit_length":1,"status":[],"schema_version":0}
+{"case_id":"frame-v0-token-result-v1","implementation":"rtl","output_hex":"01","output_bit_length":1,"status":[],"schema_version":0}
+{"case_id":"oversize_rejected","implementation":"rtl","output_hex":"01","output_bit_length":1,"status":[],"schema_version":0}
+{"case_id":"reset_recovery","implementation":"rtl","output_hex":"01","output_bit_length":1,"status":[],"schema_version":0}
