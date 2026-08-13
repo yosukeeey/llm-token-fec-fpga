@@ -30,12 +30,13 @@ jobs:
           $ErrorActionPreference = "Stop"
           $PSNativeCommandUseErrorActionPreference = $true
           $statusPath = "repos/$env:REPOSITORY/statuses/$env:HEAD_SHA"
-          gh api --method POST $statusPath -f state=pending -f context=work-item-policy -f description="Work item policy is running"
+          $targetUrl = "$env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID"
+          gh api --method POST $statusPath -f state=pending -f context=work-item-policy -f description="Work item policy is running" -f target_url=$targetUrl
           try {
               ./scripts/work_item_policy.ps1 pull-request -Repository $env:REPOSITORY -PullRequest $env:PR_NUMBER
-              gh api --method POST $statusPath -f state=success -f context=work-item-policy -f description="Work item policy passed"
+              gh api --method POST $statusPath -f state=success -f context=work-item-policy -f description="Work item policy passed" -f target_url=$targetUrl
           }
           catch {
-              gh api --method POST $statusPath -f state=failure -f context=work-item-policy -f description="Work item policy failed"
+              gh api --method POST $statusPath -f state=failure -f context=work-item-policy -f description="Work item policy failed" -f target_url=$targetUrl
               throw
           }
