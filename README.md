@@ -68,6 +68,8 @@ cmake --build --preset dev-msvc-release
 ctest --preset dev-msvc-release
 .\scripts\test_rtl.ps1
 .\scripts\test_streaming_rtl.ps1
+.\scripts\test_frame_rtl.ps1
+.\scripts\test_uart_rtl.ps1
 ```
 
 Pythonの依存は`uv.lock`、C++の依存は必要になった時点で`vcpkg.json`へ追加し、`builtin-baseline`で固定する。現在のC++ Environment Smoke Testは標準Libraryだけを使う。生成物、Tool本体、cacheは`build/`、vcpkg packageは`vcpkg_installed/`に置き、Git管理しない。
@@ -111,4 +113,6 @@ RTL検証は固定JSONLからSimulator入力を生成し、Parity 3件、Repetit
 ```powershell
 .\scripts\test_rtl.ps1
 .\scripts\test_streaming_rtl.ps1
+.\scripts\test_frame_rtl.ps1
+.\scripts\test_uart_rtl.ps1
 ```
