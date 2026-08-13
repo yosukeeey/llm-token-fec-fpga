@@ -132,7 +132,7 @@ def _hamming_vectors() -> list[TestVector]:
     return vectors
 
 
-def _protocol_vectors() -> list[TestVector]:
+def _protocol_frames() -> tuple[tuple[str, Frame], ...]:
     token = TokenRecord(
         stream_id=0x11223344,
         sequence=0xFFFFFFFF,
@@ -156,7 +156,7 @@ def _protocol_vectors() -> list[TestVector]:
         token,
         ResultStatus(ResultFlag.FEC_CORRECTED, corrected_count=1),
     ).pack()
-    frames = (
+    return (
         ("frame-v0-ping", Frame(MessageType.PING)),
         (
             "frame-v0-token-request-v1",
@@ -167,6 +167,10 @@ def _protocol_vectors() -> list[TestVector]:
             Frame(MessageType.TOKEN_RESULT, payload=result_payload),
         ),
     )
+
+
+def _protocol_vectors() -> list[TestVector]:
+    frames = _protocol_frames()
     vectors: list[TestVector] = []
     for case_id, frame in frames:
         encoded = serialize_frame(frame)
@@ -191,6 +195,46 @@ def _protocol_vectors() -> list[TestVector]:
     return vectors
 
 
+def _protocol_pipeline_vectors() -> list[TestVector]:
+    frames = dict(_protocol_frames())
+    cases = (
+        (
+            "pipeline-v0-ping-pong",
+            frames["frame-v0-ping"],
+            Frame(MessageType.PONG),
+            0,
+            [],
+        ),
+        (
+            "pipeline-v0-hamming-token",
+            frames["frame-v0-token-request-v1"],
+            frames["frame-v0-token-result-v1"],
+            1,
+            ["FEC_CORRECTED"],
+        ),
+    )
+    vectors: list[TestVector] = []
+    for case_id, request, response, corrected_count, expected_status in cases:
+        request_bytes = serialize_frame(request)
+        response_bytes = serialize_frame(response)
+        vectors.append(
+            TestVector(
+                case_id=case_id,
+                algorithm="protocol_pipeline",
+                parameters={"corrected_count": corrected_count},
+                input_hex=request_bytes.hex(),
+                input_bit_length=len(request_bytes) * 8,
+                encoded_hex=request_bytes.hex(),
+                encoded_bit_length=len(request_bytes) * 8,
+                received_hex=request_bytes.hex(),
+                decoded_hex=response_bytes.hex(),
+                decoded_bit_length=len(response_bytes) * 8,
+                expected_status=expected_status,
+            )
+        )
+    return vectors
+
+
 def generate_vector_sets() -> dict[str, list[TestVector]]:
     """Build every deterministic reference vector set.
 
@@ -205,6 +249,7 @@ def generate_vector_sets() -> dict[str, list[TestVector]]:
         "repetition": _repetition_vectors,
         "hamming74": _hamming_vectors,
         "protocol": _protocol_vectors,
+        "protocol_pipeline": _protocol_pipeline_vectors,
     }
     return {name: generator() for name, generator in generators.items()}
 

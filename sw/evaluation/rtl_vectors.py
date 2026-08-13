@@ -101,3 +101,19 @@ def write_rtl_vector_files(vector_dir: Path, output_dir: Path) -> None:
     (output_dir / "protocol.txt").write_text(
         "\n".join(protocol_lines) + "\n", encoding="ascii"
     )
+
+    protocol_pipeline = read_jsonl(
+        vector_dir / "protocol_pipeline.jsonl", TestVector
+    )
+    protocol_pipeline_lines = [str(len(protocol_pipeline))]
+    for vector in protocol_pipeline:
+        request_length = _byte_length("request", vector.encoded_bit_length)
+        response_length = _byte_length("response", vector.decoded_bit_length)
+        protocol_pipeline_lines.append(
+            f"{vector.case_id} {request_length} "
+            f"{_packed_vector_value(vector.encoded_hex)} {response_length} "
+            f"{_packed_vector_value(vector.decoded_hex)}"
+        )
+    (output_dir / "protocol_pipeline.txt").write_text(
+        "\n".join(protocol_pipeline_lines) + "\n", encoding="ascii"
+    )
