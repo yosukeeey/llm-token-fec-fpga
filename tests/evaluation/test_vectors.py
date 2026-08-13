@@ -56,3 +56,15 @@ def test_protocol_pipeline_vectors_contain_complete_frames() -> None:
     assert token.decoded_bit_length == len(token_response) * 4
     assert token.parameters == {"corrected_count": 1}
     assert token.expected_status == ["FEC_CORRECTED"]
+
+
+def test_protocol_vectors_cover_the_maximum_opaque_payload() -> None:
+    vectors = {
+        vector.case_id: vector for vector in generate_vector_sets()["protocol"]
+    }
+    maximum = vectors["frame-v0-max-payload"]
+
+    assert maximum.input_hex == (bytes(range(256)) * 4).hex()
+    assert maximum.input_bit_length == 1024 * 8
+    assert maximum.encoded_bit_length == (1024 + 12) * 8
+    assert maximum.parameters == {"message_type": 0x7E, "flags": 0xA55A}

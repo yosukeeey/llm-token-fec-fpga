@@ -29,7 +29,7 @@ def test_rtl_vectors_are_derived_from_fixed_jsonl() -> None:
     protocol_lines = (
         (output_dir / "protocol.txt").read_text(encoding="ascii").splitlines()
     )
-    assert protocol_lines[0] == "3"
+    assert protocol_lines[0] == "4"
     assert protocol_lines[1] == "frame-v0-ping 12 6f3b13260000000001005aa5 1 0 0 0"
 
     token_fields = protocol_lines[2].split()
@@ -37,6 +37,11 @@ def test_rtl_vectors_are_derived_from_fixed_jsonl() -> None:
     assert token_fields[3:6] == ["16", "0", "64"]
     assert bytes.fromhex(token_fields[2])[::-1][:8] == bytes.fromhex("a55a001000004000")
     assert bytes.fromhex(token_fields[6])[::-1][:4] == bytes.fromhex("01032800")
+
+    maximum_fields = protocol_lines[4].split()
+    assert maximum_fields[0:2] == ["frame-v0-max-payload", "1036"]
+    assert maximum_fields[3:6] == ["126", "42330", "1024"]
+    assert bytes.fromhex(maximum_fields[6])[::-1] == bytes(range(256)) * 4
 
     pipeline_lines = (
         (output_dir / "protocol_pipeline.txt")

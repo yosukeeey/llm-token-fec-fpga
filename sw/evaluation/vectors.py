@@ -133,6 +133,7 @@ def _hamming_vectors() -> list[TestVector]:
 
 
 def _protocol_frames() -> tuple[tuple[str, Frame], ...]:
+    max_payload = bytes(range(256)) * 4
     token = TokenRecord(
         stream_id=0x11223344,
         sequence=0xFFFFFFFF,
@@ -165,6 +166,10 @@ def _protocol_frames() -> tuple[tuple[str, Frame], ...]:
         (
             "frame-v0-token-result-v1",
             Frame(MessageType.TOKEN_RESULT, payload=result_payload),
+        ),
+        (
+            "frame-v0-max-payload",
+            Frame(0x7E, payload=max_payload, flags=0xA55A),
         ),
     )
 
