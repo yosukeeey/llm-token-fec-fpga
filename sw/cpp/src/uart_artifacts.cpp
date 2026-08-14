@@ -120,18 +120,10 @@ public:
 
     ~ReservedArtifact() {
         close_noexcept();
-        if (remove_on_destroy_) {
-            std::error_code ignored;
-            std::filesystem::remove(path_, ignored);
-        }
     }
 
     ReservedArtifact(const ReservedArtifact&) = delete;
     ReservedArtifact& operator=(const ReservedArtifact&) = delete;
-
-    void keep() noexcept {
-        remove_on_destroy_ = false;
-    }
 
     void write_all(const std::span<const std::uint8_t> content) {
         if (closed_) {
@@ -211,7 +203,6 @@ private:
     }
 
     std::filesystem::path path_;
-    bool remove_on_destroy_{true};
     bool closed_{false};
 #ifdef _WIN32
     HANDLE file_{INVALID_HANDLE_VALUE};
@@ -226,10 +217,7 @@ struct UartArtifactFiles::Impl {
     Impl(
         const std::filesystem::path& capture_path,
         const std::filesystem::path& result_path
-    ) : capture(capture_path), result(result_path) {
-        capture.keep();
-        result.keep();
-    }
+    ) : capture(capture_path), result(result_path) {}
 
     ReservedArtifact capture;
     ReservedArtifact result;
