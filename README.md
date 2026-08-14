@@ -59,6 +59,12 @@ PowerShellで初回SetupとSmoke Testを実行する。
 .\scripts\bootstrap.ps1
 ```
 
+Pull Request CIと同じ回帰検証は、LLM用依存とvcpkg準備を除外して実行できる。
+
+```powershell
+.\scripts\bootstrap.ps1 -ContinuousIntegration
+```
+
 個別に実行する場合:
 
 ```powershell
