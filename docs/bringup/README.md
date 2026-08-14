@@ -13,7 +13,7 @@ Basys 3実機検証の順序、合格条件、保存物を定義する。未実�
 | Basys 3 board top and XDC | Missing | Future Issue |
 | Reproducible Vivado build and programming | Missing | Future Issue |
 | C++20 Win32 UART runner | Ready | `sw/cpp/apps/uart_vector_runner.cpp` |
-| Hardware capture to Result JSONL | Missing | Future Issue |
+| Hardware capture to Result JSONL | Ready | `sw/cpp/src/uart_artifacts.cpp` |
 
 `scripts/evaluate_streaming_results.py` validates self-checking RTL testbench records only. It does not evaluate hardware captures.
 
@@ -61,11 +61,24 @@ fixed 115200 baud, 8-N-1 settings and one absolute timeout per request/response 
 .\build\dev\cpp\Release\uart_vector_runner.exe `
   --port COM3 `
   --vectors datasets\test_vectors\protocol_v0\protocol_pipeline.jsonl `
+  --capture datasets\test_results\bringup\basys3\<run-id>\uart-capture.bin `
+  --results datasets\test_results\bringup\basys3\<run-id>\results.jsonl `
   --timeout-ms 2000
 ```
 
 Success requires byte-identical PONG and TOKEN_RESULT Frames in vector order. The
 runner exits nonzero on timeout, serial failure, malformed response, or byte mismatch.
+The capture contains every received UART byte without transformation. Completed Frames
+are written as `CaseResult` records, with status flags decoded from the actual payload.
+Existing artifact paths are rejected.
+
+Offline evaluation remains a separate Python step.
+
+```powershell
+uv run python -m scripts.evaluate_reference_results `
+  --vectors datasets\test_vectors\protocol_v0\protocol_pipeline.jsonl `
+  --results datasets\test_results\bringup\basys3\<run-id>\results.jsonl
+```
 
 ## Acceptance
 

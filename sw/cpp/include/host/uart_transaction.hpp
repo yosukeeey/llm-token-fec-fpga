@@ -7,6 +7,7 @@
 #include <span>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 
 #include "reference/bits.hpp"
 
@@ -34,6 +35,18 @@ public:
     ) = 0;
 };
 
+class UartObserver {
+public:
+    virtual ~UartObserver() = default;
+
+    virtual void received(std::span<const std::uint8_t> data) = 0;
+
+    virtual void completed(
+        std::string_view case_id,
+        std::span<const std::uint8_t> response
+    ) = 0;
+};
+
 struct UartCase {
     std::string case_id;
     reference::Bytes request;
@@ -43,13 +56,15 @@ struct UartCase {
 [[nodiscard]] std::size_t run_uart_cases(
     ByteTransport& transport,
     std::span<const UartCase> cases,
-    std::chrono::milliseconds case_timeout
+    std::chrono::milliseconds case_timeout,
+    UartObserver* observer = nullptr
 );
 
 [[nodiscard]] std::size_t run_uart_session(
     std::unique_ptr<ByteTransport> transport,
     std::span<const UartCase> cases,
-    std::chrono::milliseconds case_timeout
+    std::chrono::milliseconds case_timeout,
+    UartObserver* observer = nullptr
 );
 
 }

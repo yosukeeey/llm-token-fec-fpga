@@ -53,9 +53,15 @@ if(BUILD_TESTING OR WIN32)
     target_link_libraries(uart_vector_cases PUBLIC uart_runner_core reference_vector_io)
     target_compile_features(uart_vector_cases PUBLIC cxx_std_20)
 
+    add_library(uart_artifacts STATIC sw/cpp/src/uart_artifacts.cpp)
+    target_include_directories(uart_artifacts PUBLIC sw/cpp/include)
+    target_link_libraries(uart_artifacts PUBLIC uart_runner_core reference_vector_io)
+    target_compile_features(uart_artifacts PUBLIC cxx_std_20)
+
     if(MSVC)
         target_compile_options(reference_vector_io PRIVATE /W4 /WX /permissive- /utf-8)
         target_compile_options(uart_vector_cases PRIVATE /W4 /WX /permissive- /utf-8)
+        target_compile_options(uart_artifacts PRIVATE /W4 /WX /permissive- /utf-8)
     endif()
 endif()
 
@@ -66,7 +72,10 @@ if(WIN32)
     target_compile_features(win32_serial PUBLIC cxx_std_20)
 
     add_executable(uart_vector_runner sw/cpp/apps/uart_vector_runner.cpp)
-    target_link_libraries(uart_vector_runner PRIVATE uart_vector_cases win32_serial)
+    target_link_libraries(
+        uart_vector_runner
+        PRIVATE uart_artifacts uart_vector_cases win32_serial
+    )
     target_compile_features(uart_vector_runner PRIVATE cxx_std_20)
 
     if(MSVC)
@@ -85,10 +94,14 @@ if(BUILD_TESTING)
     add_executable(uart_transaction_test sw/cpp/tests/uart_transaction_test.cpp)
     target_link_libraries(uart_transaction_test PRIVATE uart_vector_cases)
 
+    add_executable(uart_artifacts_test sw/cpp/tests/uart_artifacts_test.cpp)
+    target_link_libraries(uart_artifacts_test PRIVATE uart_artifacts uart_vector_cases)
+
     if(MSVC)
         target_compile_options(reference_unit_test PRIVATE /W4 /WX /permissive- /utf-8)
         target_compile_options(reference_vector_test PRIVATE /W4 /WX /permissive- /utf-8)
         target_compile_options(uart_transaction_test PRIVATE /W4 /WX /permissive- /utf-8)
+        target_compile_options(uart_artifacts_test PRIVATE /W4 /WX /permissive- /utf-8)
     endif()
 
     add_test(NAME dev_env_smoke COMMAND dev_env_smoke)
@@ -101,5 +114,11 @@ if(BUILD_TESTING)
         NAME uart_transaction_test
         COMMAND uart_transaction_test
                 "${CMAKE_SOURCE_DIR}/datasets/test_vectors/protocol_v0/protocol_pipeline.jsonl"
+    )
+    add_test(
+        NAME uart_artifacts_test
+        COMMAND uart_artifacts_test
+                "${CMAKE_SOURCE_DIR}/datasets/test_vectors/protocol_v0/protocol_pipeline.jsonl"
+                "${CMAKE_SOURCE_DIR}/build/test/uart-artifacts"
     )
 endif()

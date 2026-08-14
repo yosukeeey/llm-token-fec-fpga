@@ -3,6 +3,7 @@
 #include <fstream>
 #include <limits>
 #include <set>
+#include <sstream>
 #include <stdexcept>
 
 #include <nlohmann/json.hpp>
@@ -80,32 +81,89 @@ TestVector parse_vector(const Json& value) {
     return vector;
 }
 
+CaseResult parse_result(const Json& value) {
+    if (!value.is_object()) {
+        throw std::invalid_argument("result must be a JSON object");
+    }
+    CaseResult result{
+        value.at("case_id").get<std::string>(),
+        value.at("implementation").get<std::string>(),
+        hex_decode(value.at("output_hex").get<std::string>()),
+        read_size(value, "output_bit_length"),
+        value.at("status").get<std::vector<std::string>>(),
+        value.at("schema_version").get<std::uint32_t>(),
+    };
+    if (result.schema_version != 0U) {
+        throw std::invalid_argument("unsupported result schema");
+    }
+    if (result.case_id.empty() || result.implementation.empty()) {
+        throw std::invalid_argument("case_id and implementation must be non-empty");
+    }
+    validate_bit_length(result.output, result.output_bit_length);
+    return result;
 }
 
-std::vector<TestVector> read_test_vectors(const std::filesystem::path& path) {
+template <typename Record, typename Parser>
+std::vector<Record> read_records(
+    const std::filesystem::path& path,
+    Parser parser,
+    const char* duplicate_message
+) {
     std::ifstream input(path);
     if (!input) {
-        throw std::runtime_error("cannot open vector file: " + path.string());
+        throw std::runtime_error("cannot open JSONL file: " + path.string());
     }
-    std::vector<TestVector> vectors;
+    std::vector<Record> records;
     std::set<std::string> case_ids;
     std::string line;
     std::size_t line_number = 0;
     while (std::getline(input, line)) {
         ++line_number;
         try {
-            auto vector = parse_vector(Json::parse(line));
-            if (!case_ids.insert(vector.case_id).second) {
-                throw std::invalid_argument("duplicate case_id");
+            auto record = parser(Json::parse(line));
+            if (!case_ids.insert(record.case_id).second) {
+                throw std::invalid_argument(duplicate_message);
             }
-            vectors.push_back(std::move(vector));
+            records.push_back(std::move(record));
         } catch (const std::exception& error) {
             throw std::runtime_error(
                 path.string() + ":" + std::to_string(line_number) + ": " + error.what()
             );
         }
     }
-    return vectors;
+    return records;
+}
+
+}
+
+std::vector<TestVector> read_test_vectors(const std::filesystem::path& path) {
+    return read_records<TestVector>(path, parse_vector, "duplicate case_id");
+}
+
+std::vector<CaseResult> read_case_results(const std::filesystem::path& path) {
+    return read_records<CaseResult>(path, parse_result, "duplicate case_id");
+}
+
+std::string encode_case_results(const std::span<const CaseResult> results) {
+    std::ostringstream output;
+    for (const auto& result : results) {
+        if (result.schema_version != 0U) {
+            throw std::invalid_argument("unsupported result schema");
+        }
+        if (result.case_id.empty() || result.implementation.empty()) {
+            throw std::invalid_argument("case_id and implementation must be non-empty");
+        }
+        validate_bit_length(result.output, result.output_bit_length);
+        nlohmann::ordered_json value;
+        value["case_id"] = result.case_id;
+        value["implementation"] = result.implementation;
+        value["output_hex"] = hex_encode(result.output);
+        value["output_bit_length"] = result.output_bit_length;
+        value["status"] = result.status;
+        value["schema_version"] = result.schema_version;
+        output << value.dump() << '\n';
+    }
+    return output.str();
 }
 
 }

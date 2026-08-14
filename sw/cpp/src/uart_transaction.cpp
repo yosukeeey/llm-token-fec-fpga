@@ -36,7 +36,8 @@ void write_all(
 
 reference::Bytes read_frame(
     ByteTransport& transport,
-    const UartClock::time_point deadline
+    const UartClock::time_point deadline,
+    UartObserver* const observer
 ) {
     reference::FrameParser parser;
     std::array<std::uint8_t, 256> buffer{};
@@ -45,6 +46,9 @@ reference::Bytes read_frame(
         const auto count = transport.read_some(buffer, deadline);
         if (count == 0U || count > buffer.size()) {
             throw std::runtime_error("serial read made invalid progress");
+        }
+        if (observer != nullptr) {
+            observer->received(std::span(buffer).first(count));
         }
         received.insert(received.end(), buffer.begin(), buffer.begin() + static_cast<std::ptrdiff_t>(count));
         const auto frames = parser.feed(std::span(buffer).first(count));
@@ -67,7 +71,8 @@ reference::Bytes read_frame(
 std::size_t run_uart_cases(
     ByteTransport& transport,
     const std::span<const UartCase> cases,
-    const std::chrono::milliseconds case_timeout
+    const std::chrono::milliseconds case_timeout,
+    UartObserver* const observer
 ) {
     if (cases.empty()) {
         throw std::invalid_argument("UART case list must not be empty");
@@ -99,7 +104,10 @@ std::size_t run_uart_cases(
             }
             const auto deadline = now + timeout_duration;
             write_all(transport, uart_case.request, deadline);
-            const auto response = read_frame(transport, deadline);
+            const auto response = read_frame(transport, deadline, observer);
+            if (observer != nullptr) {
+                observer->completed(uart_case.case_id, response);
+            }
             if (response != uart_case.expected_response) {
                 throw std::runtime_error("serial response does not match expected Frame");
             }
@@ -114,12 +122,13 @@ std::size_t run_uart_cases(
 std::size_t run_uart_session(
     std::unique_ptr<ByteTransport> transport,
     const std::span<const UartCase> cases,
-    const std::chrono::milliseconds case_timeout
+    const std::chrono::milliseconds case_timeout,
+    UartObserver* const observer
 ) {
     if (!transport) {
         throw std::invalid_argument("UART transport must not be null");
     }
-    return run_uart_cases(*transport, cases, case_timeout);
+    return run_uart_cases(*transport, cases, case_timeout, observer);
 }
 
 }
