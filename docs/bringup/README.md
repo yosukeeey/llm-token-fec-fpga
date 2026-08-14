@@ -30,17 +30,18 @@ Protocol details are defined in [`docs/TEST_PROTOCOL_V0.md`](../TEST_PROTOCOL_V0
 
 ## Bring-up order
 
-1. Record the board, cable, host, tool versions, and Git commit.
-2. Run the software and RTL regressions.
-3. Confirm Vivado and the serial port.
-4. Build the bitstream from the recorded command.
-5. Record the bitstream SHA-256 before programming.
-6. Program the FPGA.
-7. Run PING to PONG byte-exact tests.
-8. Run TOKEN_REQUEST to TOKEN_RESULT byte-exact tests.
-9. Save raw capture, Result JSONL, evaluator output, and the completed run record.
+Do not combine stages during initial bring-up. Advance only after the current stage passes.
 
-Steps 4 through 9 remain blocked until the missing assets in the status table are implemented.
+| Stage | Test design | Isolates | Pass condition | Evidence |
+| --- | --- | --- | --- | --- |
+| 0 | Preflight | Host tools and existing regressions | Environment checks and all software/RTL regressions pass | Tool versions, Git commit, and command output |
+| 1 | LED blink | Configuration, 100 MHz clock pin, LED pin, and counter | One onboard LED blinks at the designed human-visible rate for at least 10 cycles after programming | Bitstream SHA-256, LED identifier, and observed result |
+| 2 | UART TX beacon | UART TX pin, baud rate, and bit timing | The host repeatedly receives the designed byte pattern without changes | Raw RX capture and decoded bytes |
+| 3 | UART byte echo | UART RX pin, sampling, and bidirectional path | `00`, `FF`, `55`, and `AA` are returned byte-exactly in order | Sent and received bytes |
+| 4 | Frame PING/PONG | Frame boundary, length, CRC, and response path | The fixed PING Frame produces the expected PONG Frame | Raw capture, Result JSONL, and evaluator output |
+| 5 | Token/FEC | Token payload and protection processing | The fixed TOKEN_REQUEST produces the expected TOKEN_RESULT and status | Raw capture, Result JSONL, and evaluator output |
+
+Stage 1 uses only the onboard clock and one onboard LED; UART and protocol logic remain inactive. Record the build command and bitstream SHA-256 before every programming step. Stages 1 through 5 remain blocked until the missing top, XDC, and Vivado build assets in the status table are implemented.
 
 ## Preflight
 
@@ -83,6 +84,8 @@ uv run python -m scripts.evaluate_reference_results `
 ## Acceptance
 
 - All preflight commands exit with zero.
+- Each earlier bring-up stage passes before the next stage starts.
+- The LED-only design blinks reliably before any UART design is programmed.
 - The programmed bitstream matches the recorded SHA-256.
 - Every transmitted Frame has one expected byte-exact response.
 - No unexpected response, timeout, UART framing error, or FIFO overflow occurs.
