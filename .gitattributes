@@ -1,1 +1,6 @@
 /.githooks/* text eol=lf
+/datasets/test_vectors/protocol_v0/*.jsonl text eol=lf
+/rtl/interfaces/protocol_pkg.sv text eol=lf
+/spec/test_protocol_v0.yaml text eol=lf
+/sw/common/protocol_constants.py text eol=lf
+/sw/cpp/include/reference/protocol_constants.hpp text eol=lf
