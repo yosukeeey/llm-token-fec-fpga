@@ -413,6 +413,11 @@ dependencies = [
 ]
 
 [package.dev-dependencies]
+ci = [
+    { name = "pytest" },
+    { name = "pyyaml" },
+    { name = "ruff" },
+]
 dev = [
     { name = "pytest" },
     { name = "ruff" },
@@ -431,6 +436,11 @@ requires-dist = [
 ]
 
 [package.metadata.requires-dev]
+ci = [
+    { name = "pytest", specifier = ">=9.1.1" },
+    { name = "pyyaml", specifier = ">=6.0.3" },
+    { name = "ruff", specifier = ">=0.16.2" },
+]
 dev = [
     { name = "pytest", specifier = ">=9.1.1" },
     { name = "ruff", specifier = ">=0.16.2" },

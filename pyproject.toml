@@ -26,6 +26,11 @@ build-backend = "uv_build"
 package = false
 
 [dependency-groups]
+ci = [
+    "pytest>=9.1.1",
+    "pyyaml>=6.0.3",
+    "ruff>=0.16.2",
+]
 dev = [
     "pytest>=9.1.1",
     "ruff>=0.16.2",
