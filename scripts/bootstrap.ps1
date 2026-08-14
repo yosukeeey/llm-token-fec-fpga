@@ -1,5 +1,7 @@
 [CmdletBinding()]
-param()
+param(
+    [switch]$ContinuousIntegration
+)
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
@@ -172,11 +174,20 @@ function Initialize-IcarusVerilog {
 
 Push-Location $repositoryRoot
 try {
-    Write-Host "== Git commit policy =="
-    & (Join-Path $PSScriptRoot "configure_git.ps1")
+    if (-not $ContinuousIntegration) {
+        Write-Host "== Git commit policy =="
+        & (Join-Path $PSScriptRoot "configure_git.ps1")
+    }
 
     Write-Host "== Python environment =="
-    uv sync --frozen
+    if ($ContinuousIntegration) {
+        # Communication CI excludes unrelated local LLM packages.
+        uv sync --frozen --only-group ci
+        $env:UV_NO_SYNC = "1"
+    }
+    else {
+        uv sync --frozen
+    }
     Assert-NativeSuccess "uv sync"
     uv run python --version
     Assert-NativeSuccess "uv run python"
@@ -191,8 +202,10 @@ try {
     uv run python -m scripts.generate_reference_vectors --check
     Assert-NativeSuccess "reference vector reproducibility"
 
-    Write-Host "== vcpkg environment =="
-    Initialize-Vcpkg
+    if (-not $ContinuousIntegration) {
+        Write-Host "== vcpkg environment =="
+        Initialize-Vcpkg
+    }
 
     Write-Host "== C++ test dependency =="
     Initialize-JsonHeader
@@ -218,6 +231,8 @@ try {
     Write-Host "== RTL test =="
     & (Join-Path $PSScriptRoot "test_rtl.ps1")
     & (Join-Path $PSScriptRoot "test_streaming_rtl.ps1")
+    & (Join-Path $PSScriptRoot "test_frame_rtl.ps1")
+    & (Join-Path $PSScriptRoot "test_uart_rtl.ps1")
 }
 finally {
     Pop-Location
