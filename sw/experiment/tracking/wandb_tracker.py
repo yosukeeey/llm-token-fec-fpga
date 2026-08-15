@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import subprocess
 from collections.abc import Mapping
 from dataclasses import asdict, dataclass
 from importlib import import_module
@@ -11,7 +12,9 @@ from pathlib import Path
 from typing import Protocol
 from urllib.parse import urlparse
 
-from sw.experiment.config import WandbConfig
+from sw.experiment.config import ExperimentConfig, WandbConfig
+
+UNKNOWN_GIT_COMMIT = "unknown"
 
 
 class _WandbRun(Protocol):
@@ -94,6 +97,73 @@ class GenerationMetrics:
     input_tokens: int
     output_tokens: int
     tokens_per_sec: float
+
+
+def current_git_commit(*, repository: str | Path | None = None) -> str:
+    """Return the current source commit identifier.
+
+    Parameters
+    ----------
+    repository : str or pathlib.Path or None
+        Repository directory. The current directory is used when omitted.
+
+    Returns
+    -------
+    str
+        Commit hash, or ``"unknown"`` when Git cannot resolve one.
+    """
+    try:
+        completed = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=None if repository is None else str(repository),
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return UNKNOWN_GIT_COMMIT
+    return completed.stdout.strip() or UNKNOWN_GIT_COMMIT
+
+
+def build_run_config(
+    config: ExperimentConfig,
+    *,
+    model_sha256: str,
+    prompt_id: str,
+    git_commit: str,
+) -> WandbRunConfig:
+    """Collect reproducibility metadata for one tracked run.
+
+    Parameters
+    ----------
+    config : sw.experiment.config.ExperimentConfig
+        Validated experiment definition.
+    model_sha256 : str
+        SHA-256 digest of the model file.
+    prompt_id : str
+        Prompt dataset record identifier.
+    git_commit : str
+        Source commit identifier.
+
+    Returns
+    -------
+    WandbRunConfig
+        Metadata recorded as the W&B run configuration.
+    """
+    return WandbRunConfig(
+        experiment_name=config.name,
+        model_name=config.model.name,
+        model_sha256=model_sha256,
+        quantization=config.model.quantization,
+        seed=config.generation.seed,
+        max_tokens=config.generation.max_tokens,
+        temperature=config.generation.temperature,
+        thinking=config.generation.thinking,
+        prompt_id=prompt_id,
+        channel=config.channel,
+        fec=config.fec,
+        git_commit=git_commit,
+    )
 
 
 def _has_online_credentials(environment: Mapping[str, str]) -> bool:

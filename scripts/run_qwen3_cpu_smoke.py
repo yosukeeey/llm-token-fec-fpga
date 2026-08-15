@@ -3,6 +3,7 @@
 import argparse
 import json
 from pathlib import Path
+from time import perf_counter
 
 from sw.experiment import load_experiment_config
 from sw.experiment.qwen3_cpu import (
@@ -11,6 +12,12 @@ from sw.experiment.qwen3_cpu import (
     load_cpu_model,
     read_model_metadata,
     run_non_thinking_inference,
+)
+from sw.experiment.tracking import (
+    GenerationMetrics,
+    WandbTracker,
+    build_run_config,
+    current_git_commit,
 )
 
 DEFAULT_CONFIG = Path("experiments/configs/qwen3_4b_cpu.yaml")
@@ -28,6 +35,7 @@ def main() -> int:
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
     parser.add_argument("--prompt", default="Reply with only: OK")
     parser.add_argument("--max-tokens", type=int)
+    parser.add_argument("--prompt-id", default="cli-001")
     arguments = parser.parse_args()
 
     config = load_experiment_config(arguments.config)
@@ -45,6 +53,17 @@ def main() -> int:
     )
     metadata = read_model_metadata(config.model.path)
     model = load_cpu_model(config.model.path, seed=config.generation.seed)
+
+    tracker = WandbTracker.start(
+        config.tracking.wandb,
+        build_run_config(
+            config,
+            model_sha256=metadata.model_sha256,
+            prompt_id=arguments.prompt_id,
+            git_commit=current_git_commit(),
+        ),
+    )
+    started = perf_counter()
     result = run_non_thinking_inference(
         model,
         metadata,
@@ -53,6 +72,20 @@ def main() -> int:
         max_tokens=max_tokens,
         temperature=config.generation.temperature,
     )
+    generation_time_s = perf_counter() - started
+    output_tokens = len(result.output_token_ids)
+    tracker.log(
+        GenerationMetrics(
+            generation_time_s=generation_time_s,
+            input_tokens=len(result.input_token_ids),
+            output_tokens=output_tokens,
+            tokens_per_sec=(
+                output_tokens / generation_time_s if generation_time_s > 0.0 else 0.0
+            ),
+        )
+    )
+    tracker.finish()
+
     print(json.dumps(result.to_dict(), ensure_ascii=False, sort_keys=True))
     return 0
 
