@@ -26,6 +26,11 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
+# GitHub CLI emits UTF-8. Without this the console code page decodes it, which
+# corrupts non-ASCII Issue and PR text and breaks JSON parsing.
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+$OutputEncoding = [System.Text.Encoding]::UTF8
+
 $branchPattern = "^issue/(?<issue>[1-9][0-9]*)-[a-z0-9]+(?:-[a-z0-9]+)*$"
 $issueSections = @(
     "Objective",
