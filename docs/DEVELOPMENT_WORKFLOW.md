@@ -53,9 +53,18 @@ Write Issue and PR bodies in Japanese. Keep template headings, command names, fi
 
 ## Cleanup
 
-After merging the PR, remove its worktree and delete the local branch.
+After merging the PR, run `cleanup`. Without `-Execute` it only reports what it
+would do, so the list can be inspected first.
 
 ```powershell
-git worktree remove ..\llm-token-fec-fpga-worktrees\issue-123-uart-host
-git branch -d issue/123-uart-host
+.\scripts\work_item.ps1 cleanup
+.\scripts\work_item.ps1 cleanup -Execute
 ```
+
+`cleanup` inspects every linked worktree on an Issue branch. A work item is
+removed only when its branch is already contained in `origin/main` and its
+worktree has no uncommitted or untracked paths; anything else is reported and
+kept. `-Execute` removes the worktree, deletes the local branch, and deletes
+the remote branch when a remote-tracking reference exists. Removals that fail,
+which happens on Windows when another process holds the directory, are reported
+with their reason instead of being ignored.
