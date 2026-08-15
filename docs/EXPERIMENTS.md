@@ -40,3 +40,40 @@ file SHA-256, and installed `llama-cpp-python` version.
 ```powershell
 uv run python -m scripts.run_qwen3_cpu_smoke --max-tokens 16
 ```
+
+## W&B tracking
+
+Tracking is optional and off by default (`tracking.wandb.enabled: false`). The
+adapter in `sw/experiment/tracking/` is the only place that calls the W&B SDK.
+It records the run configuration (experiment name, model name, SHA-256,
+quantization, seed, max tokens, temperature, thinking, prompt ID, channel, FEC,
+git commit) and per-generation metrics (generation time, input and output token
+counts, tokens per second).
+
+The adapter stays inactive, without importing the SDK, when tracking is
+disabled or when no credentials are available, so local experiments never
+depend on W&B.
+
+| Mode | Condition | Result |
+| --- | --- | --- |
+| Disabled | `tracking.wandb.enabled: false` | No SDK import, no network |
+| Offline | `WANDB_MODE=offline` | Local run under ignored `wandb/` |
+| Online | `WANDB_API_KEY` or a `~/.netrc` entry for `api.wandb.ai` | Uploaded run |
+
+Record one dummy run without loading a model. `--enable-tracking` overrides the
+disabled setting in the config file:
+
+```powershell
+$env:WANDB_MODE = "offline"
+uv run python -m scripts.run_wandb_dummy --enable-tracking
+```
+
+The smoke command records the same fields for a real generation when tracking
+is enabled:
+
+```powershell
+uv run python -m scripts.run_qwen3_cpu_smoke --max-tokens 16 --prompt-id smoke-001
+```
+
+Offline runs stay local under `wandb/`, which is ignored. Upload one later with
+`wandb sync wandb/offline-run-<id>`.
