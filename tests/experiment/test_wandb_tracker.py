@@ -1,10 +1,19 @@
+import subprocess
 from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
 import sw.experiment.tracking.wandb_tracker as tracker_module
-from sw.experiment.config import WandbConfig
-from sw.experiment.tracking import GenerationMetrics, WandbRunConfig, WandbTracker
+from sw.experiment.config import WandbConfig, load_experiment_config
+from sw.experiment.tracking import (
+    GenerationMetrics,
+    WandbRunConfig,
+    WandbTracker,
+    build_run_config,
+    current_git_commit,
+)
+
+CONFIG_PATH = Path("experiments/configs/qwen3_4b_cpu.yaml")
 
 RUN_CONFIG = WandbRunConfig(
     experiment_name="wandb-dummy",
@@ -48,6 +57,53 @@ class FakeWandb:
     def init(self, **options: Any) -> FakeRun:
         self.init_options = options
         return self.run
+
+
+def test_build_run_config_maps_tracked_experiment_fields() -> None:
+    config = load_experiment_config(CONFIG_PATH)
+
+    run_config = build_run_config(
+        config,
+        model_sha256="b" * 64,
+        prompt_id="smoke-001",
+        git_commit="0123456789abcdef",
+    )
+
+    assert run_config == WandbRunConfig(
+        experiment_name="qwen3-4b-cpu-smoke",
+        model_name="Qwen/Qwen3-4B-GGUF",
+        model_sha256="b" * 64,
+        quantization="Q4_K_M",
+        seed=1,
+        max_tokens=128,
+        temperature=0.0,
+        thinking=False,
+        prompt_id="smoke-001",
+        channel="none",
+        fec="none",
+        git_commit="0123456789abcdef",
+    )
+
+
+def test_current_git_commit_returns_resolved_hash(monkeypatch: Any) -> None:
+    def fake_run(command: list[str], **options: Any) -> Any:
+        assert command == ["git", "rev-parse", "HEAD"]
+        return subprocess.CompletedProcess(command, 0, stdout="abc123\n", stderr="")
+
+    monkeypatch.setattr(tracker_module.subprocess, "run", fake_run)
+
+    assert current_git_commit() == "abc123"
+
+
+def test_current_git_commit_falls_back_when_git_is_unavailable(
+    monkeypatch: Any,
+) -> None:
+    def failing_run(command: list[str], **options: Any) -> Any:
+        raise OSError("git missing")
+
+    monkeypatch.setattr(tracker_module.subprocess, "run", failing_run)
+
+    assert current_git_commit() == tracker_module.UNKNOWN_GIT_COMMIT
 
 
 def test_disabled_tracking_does_not_import_wandb(monkeypatch: Any) -> None:
