@@ -15,4 +15,4 @@ fec: none
 tracking:
   wandb:
     enabled: false
-    project: llm-token-fec-fpga
+    project: 01-llm-baseline

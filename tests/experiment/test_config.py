@@ -22,7 +22,7 @@ def test_loads_tracked_experiment_definition() -> None:
     assert config.channel == "none"
     assert config.fec == "none"
     assert config.tracking.wandb.enabled is False
-    assert config.tracking.wandb.project == "llm-token-fec-fpga"
+    assert config.tracking.wandb.project == "01-llm-baseline"
 
 
 @pytest.mark.parametrize(
