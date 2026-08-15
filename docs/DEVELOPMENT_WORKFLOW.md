@@ -31,6 +31,14 @@ Closes #123
 
 Keep the template headings unchanged so the work record remains machine-readable. Record exact validation commands and their results separately. Use `None` for empty fields. Do not add authorship or generator metadata.
 
+Write the body to a file and check it before opening the PR. The same rules run in CI, so failures found here cost one command instead of one workflow run.
+
+```powershell
+.\scripts\work_item_policy.ps1 pull-request-body -Issue 123 -PullRequestBody (Get-Content -Raw body.md)
+```
+
+Angle brackets read as unfilled template placeholders. Write `prompt id` rather than `<prompt id>` in prose, and keep `TODO`, `TBD`, and `_No response_` out of the body.
+
 The trusted default-branch workflow runs the same `scripts/work_item_policy.ps1` used locally and reports `work-item-policy` on the PR head commit. The `main protection` Ruleset requires this GitHub Actions status, a PR, the latest base branch, merge commits, resolved review threads, and blocks deletion and force push.
 
 Issue edits, closure, reopening, and Issue branch deletion refresh every open work item. A daily trusted scan detects branch creation. Request an immediate full scan after changing branch inventory when validation cannot wait for the schedule.
