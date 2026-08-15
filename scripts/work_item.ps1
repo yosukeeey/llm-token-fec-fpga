@@ -12,7 +12,9 @@ param(
 
     [string]$WorktreeRoot,
 
-    [switch]$Execute
+    [switch]$Execute,
+
+    [switch]$DeleteRemote
 )
 
 $ErrorActionPreference = "Stop"
@@ -131,11 +133,28 @@ if ($Command -eq "cleanup") {
         try {
             Invoke-Git -Arguments @("worktree", "remove", $worktree.Path) -WorkingDirectory $repositoryRoot | Out-Null
             Invoke-Git -Arguments @("branch", "-d", $worktree.Branch) -WorkingDirectory $repositoryRoot | Out-Null
-            if (Test-GitRef "refs/remotes/origin/$($worktree.Branch)" $repositoryRoot) {
-                Invoke-Git -Arguments @("push", "origin", "--delete", $worktree.Branch) -WorkingDirectory $repositoryRoot | Out-Null
-            }
             $removed++
             Write-Output "removed $($worktree.Branch)"
+
+            # The remote branch is shared with other checkouts, so deleting it
+            # is opt in and is judged on the remote tip, not the local one.
+            $remoteReference = "refs/remotes/origin/$($worktree.Branch)"
+            if (-not (Test-GitRef $remoteReference $repositoryRoot)) {
+                Write-Output "remote absent $($worktree.Branch)"
+            }
+            elseif (-not $DeleteRemote) {
+                Write-Output "remote kept $($worktree.Branch): pass -DeleteRemote to delete it"
+            }
+            else {
+                & git -C $repositoryRoot merge-base --is-ancestor $remoteReference $baseReference 2>&1 | Out-Null
+                if ($LASTEXITCODE -ne 0) {
+                    Write-Output "remote kept $($worktree.Branch): remote tip is not merged into $baseReference"
+                }
+                else {
+                    Invoke-Git -Arguments @("push", "origin", "--delete", $worktree.Branch) -WorkingDirectory $repositoryRoot | Out-Null
+                    Write-Output "remote deleted $($worktree.Branch)"
+                }
+            }
         }
         catch {
             $failures.Add("$($worktree.Branch): $($_.Exception.Message)")

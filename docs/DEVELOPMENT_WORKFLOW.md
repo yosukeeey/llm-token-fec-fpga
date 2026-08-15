@@ -64,7 +64,16 @@ would do, so the list can be inspected first.
 `cleanup` fetches and prunes first, so the merge check uses current `origin/main` and remote branches the remote already deleted are not pushed again. It then inspects every linked worktree on an Issue branch. A work item is
 removed only when its branch is already contained in `origin/main` and its
 worktree has no uncommitted or untracked paths; anything else is reported and
-kept. `-Execute` removes the worktree, deletes the local branch, and deletes
-the remote branch when a remote-tracking reference exists. Removals that fail,
-which happens on Windows when another process holds the directory, are reported
-with their reason instead of being ignored.
+kept. `-Execute` removes the worktree and deletes the local branch. Removals
+that fail, which happens on Windows when another process holds the directory,
+are reported with their reason instead of being ignored.
+
+The remote branch is shared with every other checkout, so it is left alone
+unless `-DeleteRemote` is passed, and even then it is deleted only when the
+remote tip itself is contained in `origin/main`. A branch whose remote tip
+carries commits pushed from another machine is reported and kept, because the
+local tip being merged says nothing about what the remote holds.
+
+```powershell
+.\scripts\work_item.ps1 cleanup -Execute -DeleteRemote
+```
