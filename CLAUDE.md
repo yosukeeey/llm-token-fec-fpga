@@ -47,6 +47,8 @@ Before opening the PR, validate its body:
 
 Angle brackets in the body read as unfilled placeholders and fail the policy.
 
+Write Issue and PR bodies in Japanese. Keep the template headings, command names, file paths, and identifiers unchanged.
+
 Do not edit or commit on `main`. If the requested scope exceeds the issue, stop and create another issue.
 
 ## Communication

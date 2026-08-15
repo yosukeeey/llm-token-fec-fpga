@@ -47,6 +47,10 @@ Issue edits, closure, reopening, and Issue branch deletion refresh every open wo
 gh api --method POST repos/{owner}/{repo}/dispatches -f event_type=work-item-refresh
 ```
 
+## Language
+
+Write Issue and PR bodies in Japanese. Keep template headings, command names, file paths, identifiers, and code blocks unchanged so the policy check and the machine-readable record still work. Code, comments, docstrings, and documents under `docs/` stay in English.
+
 ## Cleanup
 
 After merging the PR, remove its worktree and delete the local branch.
