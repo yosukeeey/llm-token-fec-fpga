@@ -405,6 +405,69 @@ throw "Unexpected gh arguments: $argumentText"
             Pop-Location
         }
     }
+
+    function Invoke-Cleanup {
+        param([switch]$Execute)
+
+        Push-Location $repositoryPath
+        try {
+            if ($Execute) {
+                return @(& $workItemPath cleanup -Execute)
+            }
+            return @(& $workItemPath cleanup)
+        }
+        finally {
+            Pop-Location
+        }
+    }
+
+    function Assert-CleanupLine {
+        param(
+            [string[]]$Output,
+            [string]$Pattern
+        )
+
+        if (-not @($Output | Where-Object { $_ -match $Pattern })) {
+            throw "Expected cleanup output matching '$Pattern' in: $($Output -join '; ')"
+        }
+    }
+
+    $cleanupBranch = "issue/456-cleanup-case"
+    $cleanupPath = Join-Path $worktreeRoot "issue-456-cleanup-case"
+    git -C $repositoryPath worktree add -b $cleanupBranch $cleanupPath main | Out-Null
+    git -C $cleanupPath commit --allow-empty -m "test(policy): add cleanup case" | Out-Null
+
+    Assert-Pass "cleanup keeps an unmerged work item" {
+        Assert-CleanupLine (Invoke-Cleanup) "^keep $([regex]::Escape($cleanupBranch)): not merged"
+    }
+
+    git -C $repositoryPath merge --no-ff --no-edit $cleanupBranch | Out-Null
+
+    Assert-Pass "cleanup previews a merged work item without removing it" {
+        Assert-CleanupLine (Invoke-Cleanup) "^remove $([regex]::Escape($cleanupBranch)): merged and clean"
+        if (-not (Test-Path -LiteralPath $cleanupPath)) {
+            throw "Preview must not remove the worktree."
+        }
+    }
+
+    Set-Content -LiteralPath (Join-Path $cleanupPath "scratch.txt") -Value "untracked"
+
+    Assert-Pass "cleanup keeps a work item with untracked files" {
+        Assert-CleanupLine (Invoke-Cleanup) "^keep $([regex]::Escape($cleanupBranch)): 1 uncommitted"
+    }
+
+    Remove-Item -LiteralPath (Join-Path $cleanupPath "scratch.txt")
+
+    Assert-Pass "cleanup removes a merged and clean work item" {
+        Assert-CleanupLine (Invoke-Cleanup -Execute) "^removed $([regex]::Escape($cleanupBranch))"
+        if (Test-Path -LiteralPath $cleanupPath) {
+            throw "Execute must remove the worktree."
+        }
+        $branches = @(git -C $repositoryPath branch --list $cleanupBranch)
+        if ($branches.Count -ne 0) {
+            throw "Execute must delete the local branch."
+        }
+    }
 }
 finally {
     $env:PATH = $oldPath
