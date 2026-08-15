@@ -9,6 +9,9 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 .ruff_cache/
+.env
+.env.*
+!.env.example
 
 # C++ / CMake / vcpkg
 CMakeUserPresets.json
@@ -29,6 +32,10 @@ scratch/
 # Experiment generated files
 build/
 studies/**/runs/
+wandb/
+results/raw/
+results/processed/*
+!results/processed/README.md
 
 # Vivado generated files
 .Xil/
@@ -50,6 +57,7 @@ studies/**/runs/
 
 # Editor / OS
 .vscode/
+.idea/
 .DS_Store
 Thumbs.db
 

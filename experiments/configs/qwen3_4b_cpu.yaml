@@ -1,0 +1,18 @@
+name: qwen3-4b-cpu-smoke
+model:
+  name: Qwen/Qwen3-4B-GGUF
+  # GGUF is required by the CPU inference path through llama.cpp.
+  path: models/Qwen3-4B-Q4_K_M.gguf
+  quantization: Q4_K_M
+generation:
+  seed: 1
+  max_tokens: 128
+  temperature: 0.0
+  thinking: false
+prompt_dataset: datasets/prompts/smoke.jsonl
+channel: none
+fec: none
+tracking:
+  wandb:
+    enabled: false
+    project: llm-token-fec-fpga
