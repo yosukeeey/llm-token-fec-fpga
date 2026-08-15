@@ -39,6 +39,16 @@ Before modifying tracked files:
 
 Use one PR per issue. The PR body must contain exactly one `Closes #<number>` matching the branch.
 
+Before opening the PR, validate its body:
+
+```powershell
+.\scripts\work_item_policy.ps1 pull-request-body -Issue <number> -PullRequestBody (Get-Content -Raw <body file>)
+```
+
+Angle brackets in the body read as unfilled placeholders and fail the policy.
+
+Write Issue and PR bodies in Japanese. Keep the template headings, command names, file paths, and identifiers unchanged.
+
 Do not edit or commit on `main`. If the requested scope exceeds the issue, stop and create another issue.
 
 ## Communication
