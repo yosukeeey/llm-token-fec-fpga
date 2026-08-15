@@ -41,6 +41,28 @@ file SHA-256, and installed `llama-cpp-python` version.
 uv run python -m scripts.run_qwen3_cpu_smoke --max-tokens 16
 ```
 
+## Batch runs over the prompt dataset
+
+The batch command generates one response per record in the configured
+`prompt_dataset` and appends one JSONL line per prompt under the ignored
+`results/raw/` directory. Each line is self-contained: response, token IDs,
+measurements, model identity, effective generation settings, channel, FEC, and
+the source commit.
+
+```powershell
+uv run python -m scripts.run_qwen3_cpu_batch
+```
+
+The output path defaults to `results/raw/<experiment name>-<UTC stamp>.jsonl`.
+Pass `--output` to choose one, `--max-tokens` to override the configured limit,
+and `--limit` to generate only the first records.
+
+An existing output is never replaced silently. Pass `--resume` to skip prompt
+IDs already recorded in that file, or `--overwrite` to discard it and start
+again. Results are flushed per prompt, so an interrupted run resumes from the
+last completed prompt. A resumed run with nothing left to do exits without
+loading the model.
+
 ## W&B tracking
 
 Tracking is optional and off by default (`tracking.wandb.enabled: false`). The
@@ -68,8 +90,9 @@ $env:WANDB_MODE = "offline"
 uv run python -m scripts.run_wandb_dummy --enable-tracking
 ```
 
-The smoke command records the same fields for a real generation when tracking
-is enabled:
+The batch command opens one W&B run for the whole dataset and logs metrics per
+prompt. The smoke command records the same fields for a single generation when
+tracking is enabled:
 
 ```powershell
 uv run python -m scripts.run_qwen3_cpu_smoke --max-tokens 16 --prompt-id smoke-001
