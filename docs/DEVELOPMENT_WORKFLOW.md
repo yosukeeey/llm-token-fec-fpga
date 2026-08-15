@@ -61,7 +61,7 @@ would do, so the list can be inspected first.
 .\scripts\work_item.ps1 cleanup -Execute
 ```
 
-`cleanup` inspects every linked worktree on an Issue branch. A work item is
+`cleanup` fetches and prunes first, so the merge check uses current `origin/main` and remote branches the remote already deleted are not pushed again. It then inspects every linked worktree on an Issue branch. A work item is
 removed only when its branch is already contained in `origin/main` and its
 worktree has no uncommitted or untracked paths; anything else is reported and
 kept. `-Execute` removes the worktree, deletes the local branch, and deletes

@@ -88,6 +88,15 @@ $repositoryRoot = ([string](@(Invoke-Git -Arguments @("rev-parse", "--show-tople
 $repository = Get-GitHubRepository $repositoryRoot
 
 if ($Command -eq "cleanup") {
+    # Refresh first: this updates the merge base and prunes remote-tracking
+    # references for branches the remote already deleted.
+    try {
+        Invoke-Git -Arguments @("fetch", "--prune", "origin") -WorkingDirectory $repositoryRoot | Out-Null
+    }
+    catch {
+        Write-Output "cleanup: fetch failed, using the references already present"
+    }
+
     $baseReference = if (Test-GitRef "refs/remotes/origin/main" $repositoryRoot) {
         "refs/remotes/origin/main"
     }
