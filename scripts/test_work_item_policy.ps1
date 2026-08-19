@@ -405,6 +405,110 @@ throw "Unexpected gh arguments: $argumentText"
             Pop-Location
         }
     }
+
+    function Invoke-Cleanup {
+        param([switch]$Execute)
+
+        Push-Location $repositoryPath
+        try {
+            if ($Execute) {
+                return @(& $workItemPath cleanup -Execute)
+            }
+            return @(& $workItemPath cleanup)
+        }
+        finally {
+            Pop-Location
+        }
+    }
+
+    function Assert-CleanupLine {
+        param(
+            [string[]]$Output,
+            [string]$Pattern
+        )
+
+        if (-not @($Output | Where-Object { $_ -match $Pattern })) {
+            throw "Expected cleanup output matching '$Pattern' in: $($Output -join '; ')"
+        }
+    }
+
+    $cleanupBranch = "issue/456-cleanup-case"
+    $cleanupPath = Join-Path $worktreeRoot "issue-456-cleanup-case"
+    git -C $repositoryPath worktree add -b $cleanupBranch $cleanupPath main | Out-Null
+    git -C $cleanupPath commit --allow-empty -m "test(policy): add cleanup case" | Out-Null
+
+    Assert-Pass "cleanup keeps an unmerged work item" {
+        Assert-CleanupLine (Invoke-Cleanup) "^keep $([regex]::Escape($cleanupBranch)): not merged"
+    }
+
+    git -C $repositoryPath merge --no-ff --no-edit $cleanupBranch | Out-Null
+
+    Assert-Pass "cleanup previews a merged work item without removing it" {
+        Assert-CleanupLine (Invoke-Cleanup) "^remove $([regex]::Escape($cleanupBranch)): merged and clean"
+        if (-not (Test-Path -LiteralPath $cleanupPath)) {
+            throw "Preview must not remove the worktree."
+        }
+    }
+
+    Set-Content -LiteralPath (Join-Path $cleanupPath "scratch.txt") -Value "untracked"
+
+    Assert-Pass "cleanup keeps a work item with untracked files" {
+        Assert-CleanupLine (Invoke-Cleanup) "^keep $([regex]::Escape($cleanupBranch)): 1 uncommitted"
+    }
+
+    Remove-Item -LiteralPath (Join-Path $cleanupPath "scratch.txt")
+
+    Assert-Pass "cleanup removes a merged and clean work item" {
+        $output = Invoke-Cleanup -Execute
+        Assert-CleanupLine $output "^removed $([regex]::Escape($cleanupBranch))"
+        Assert-CleanupLine $output "^remote absent $([regex]::Escape($cleanupBranch))"
+        if (Test-Path -LiteralPath $cleanupPath) {
+            throw "Execute must remove the worktree."
+        }
+        $branches = @(git -C $repositoryPath branch --list $cleanupBranch)
+        if ($branches.Count -ne 0) {
+            throw "Execute must delete the local branch."
+        }
+    }
+
+    $remoteBranch = "issue/789-remote-case"
+    $remotePath = Join-Path $worktreeRoot "issue-789-remote-case"
+    git -C $repositoryPath worktree add -b $remoteBranch $remotePath main | Out-Null
+    git -C $remotePath commit --allow-empty -m "test(policy): add remote case" | Out-Null
+    git -C $repositoryPath merge --no-ff --no-edit $remoteBranch | Out-Null
+    $mainTree = (git -C $repositoryPath rev-parse "main^{tree}").Trim()
+    $remoteOnlyCommit = (
+        git -C $repositoryPath commit-tree $mainTree -p main -m "remote only commit"
+    ).Trim()
+    git -C $repositoryPath update-ref "refs/remotes/origin/$remoteBranch" $remoteOnlyCommit
+
+    Assert-Pass "cleanup keeps the remote branch without the switch" {
+        Push-Location $repositoryPath
+        try {
+            $output = @(& $workItemPath cleanup -Execute)
+        }
+        finally {
+            Pop-Location
+        }
+        Assert-CleanupLine $output "^remote kept $([regex]::Escape($remoteBranch)): pass -DeleteRemote"
+    }
+
+    $secondBranch = "issue/790-remote-case"
+    $secondPath = Join-Path $worktreeRoot "issue-790-remote-case"
+    git -C $repositoryPath worktree add -b $secondBranch $secondPath main | Out-Null
+    git -C $repositoryPath merge --no-ff --no-edit $secondBranch | Out-Null
+    git -C $repositoryPath update-ref "refs/remotes/origin/$secondBranch" $remoteOnlyCommit
+
+    Assert-Pass "cleanup keeps an unmerged remote tip" {
+        Push-Location $repositoryPath
+        try {
+            $output = @(& $workItemPath cleanup -Execute -DeleteRemote)
+        }
+        finally {
+            Pop-Location
+        }
+        Assert-CleanupLine $output "^remote kept $([regex]::Escape($secondBranch)): remote tip is not merged"
+    }
 }
 finally {
     $env:PATH = $oldPath
