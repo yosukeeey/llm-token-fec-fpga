@@ -41,6 +41,56 @@ file SHA-256, and installed `llama-cpp-python` version.
 uv run python -m scripts.run_qwen3_cpu_smoke --max-tokens 16
 ```
 
+## Prompt datasets
+
+Prompt datasets live in `datasets/prompts/` as JSONL, one record per line.
+`smoke.jsonl` holds the single prompt used by the smoke check.
+`baseline_v1.jsonl` is the first measurement set, referenced by
+`experiments/configs/qwen3_4b_baseline.yaml`.
+
+Every record carries these fields:
+
+| Field | Meaning |
+| --- | --- |
+| `prompt_id` | `<category prefix>-<three digits>`, unique within the dataset |
+| `category` | Task domain |
+| `answer_type` | `exact` for one correct answer, `free` for reviewed answers |
+| `length_class` | `short`, `medium`, or `long` expected output |
+| `prompt` | Prompt text |
+| `expected` | Correct answer. Present only when `answer_type` is `exact` |
+| `criteria` | Review condition. Present only when `answer_type` is `free` |
+
+`baseline_v1.jsonl` covers nine domains, mixing scoring style, output length,
+and token distribution so that later corruption experiments can separate those
+factors:
+
+| Category | Prefix | Records | Answer type | Length |
+| --- | --- | ---: | --- | --- |
+| sequence | `seq` | 5 | exact | short |
+| arithmetic | `ari` | 6 | exact | short |
+| weather | `wea` | 4 | exact | short |
+| history | `his` | 4 | exact | short |
+| commonsense | `com` | 4 | exact | short |
+| translation | `tra` | 4 | free | medium |
+| control | `ctl` | 4 | free | medium |
+| story | `sto` | 3 | free | long |
+| code, format, summary, extraction, conversion | `oth` | 5 | mixed | mixed |
+
+Selection rules:
+
+- Every prompt must be deterministic at `temperature: 0.0`.
+- `exact` prompts instruct the model to answer with the value alone, so scoring
+  is a string comparison.
+- Weather prompts state their conditions inline. The model has no live data.
+- Japanese and English prompts are both present, and the translation records
+  exercise multilingual output.
+- Free-form records record a review condition instead of an answer. Scoring
+  them needs a semantic evaluator, which is not part of this dataset.
+
+At the measured 5.63 tokens per second for Qwen3-4B Q4_K_M on CPU, one pass
+over the 39 records takes roughly 15 to 20 minutes, dominated by the long
+records.
+
 ## W&B tracking
 
 Tracking is optional and off by default (`tracking.wandb.enabled: false`). The

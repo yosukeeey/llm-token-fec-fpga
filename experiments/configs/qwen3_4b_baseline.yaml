@@ -1,0 +1,19 @@
+name: qwen3-4b-baseline
+model:
+  name: Qwen/Qwen3-4B-GGUF
+  # GGUF is required by the CPU inference path through llama.cpp.
+  path: models/Qwen3-4B-Q4_K_M.gguf
+  quantization: Q4_K_M
+generation:
+  seed: 1
+  # Long-form records need room; short answers stop at the end-of-sequence token.
+  max_tokens: 512
+  temperature: 0.0
+  thinking: false
+prompt_dataset: datasets/prompts/baseline_v1.jsonl
+channel: none
+fec: none
+tracking:
+  wandb:
+    enabled: false
+    project: 01-llm-baseline

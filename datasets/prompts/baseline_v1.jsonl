@@ -1,0 +1,39 @@
+{"prompt_id":"seq-001","category":"sequence","answer_type":"exact","length_class":"short","prompt":"次の数列の次の項を、数字だけで答えよ。2, 4, 8, 16","expected":"32"}
+{"prompt_id":"seq-002","category":"sequence","answer_type":"exact","length_class":"short","prompt":"次の数列の次の項を、数字だけで答えよ。1, 1, 2, 3, 5, 8","expected":"13"}
+{"prompt_id":"seq-003","category":"sequence","answer_type":"exact","length_class":"short","prompt":"次の数列の次の項を、数字だけで答えよ。3, 6, 11, 18, 27","expected":"38"}
+{"prompt_id":"seq-004","category":"sequence","answer_type":"exact","length_class":"short","prompt":"次の数列の次の項を、数字だけで答えよ。100, 81, 64, 49, 36","expected":"25"}
+{"prompt_id":"seq-005","category":"sequence","answer_type":"exact","length_class":"short","prompt":"Give only the next number in this sequence: 1, 4, 9, 16, 25","expected":"36"}
+{"prompt_id":"ari-001","category":"arithmetic","answer_type":"exact","length_class":"short","prompt":"47 × 23 を計算し、数字だけで答えよ。","expected":"1081"}
+{"prompt_id":"ari-002","category":"arithmetic","answer_type":"exact","length_class":"short","prompt":"1234 + 5678 を計算し、数字だけで答えよ。","expected":"6912"}
+{"prompt_id":"ari-003","category":"arithmetic","answer_type":"exact","length_class":"short","prompt":"9999 - 4567 を計算し、数字だけで答えよ。","expected":"5432"}
+{"prompt_id":"ari-004","category":"arithmetic","answer_type":"exact","length_class":"short","prompt":"144 ÷ 12 を計算し、数字だけで答えよ。","expected":"12"}
+{"prompt_id":"ari-005","category":"arithmetic","answer_type":"exact","length_class":"short","prompt":"Compute 2 to the power of 10. Answer with the number only.","expected":"1024"}
+{"prompt_id":"ari-006","category":"arithmetic","answer_type":"exact","length_class":"short","prompt":"240 の 15 パーセントを計算し、数字だけで答えよ。","expected":"36"}
+{"prompt_id":"wea-001","category":"weather","answer_type":"exact","length_class":"short","prompt":"気温が氷点下のときに降水があった。降るのは雨か雪か。片方の語だけで答えよ。","expected":"雪"}
+{"prompt_id":"wea-002","category":"weather","answer_type":"exact","length_class":"short","prompt":"空気が露点温度まで冷やされたとき、水蒸気は凝結するか蒸発するか。片方の語だけで答えよ。","expected":"凝結"}
+{"prompt_id":"wea-003","category":"weather","answer_type":"exact","length_class":"short","prompt":"台風の中心気圧が下がると、最大風速は強くなるか弱くなるか。片方の語だけで答えよ。","expected":"強くなる"}
+{"prompt_id":"wea-004","category":"weather","answer_type":"exact","length_class":"short","prompt":"A region is covered by a high pressure system. Is the weather generally clear or rainy? Answer with one word.","expected":"clear"}
+{"prompt_id":"his-001","category":"history","answer_type":"exact","length_class":"short","prompt":"フランス革命が始まった年を、西暦の数字だけで答えよ。","expected":"1789"}
+{"prompt_id":"his-002","category":"history","answer_type":"exact","length_class":"short","prompt":"第二次世界大戦が終結した年を、西暦の数字だけで答えよ。","expected":"1945"}
+{"prompt_id":"his-003","category":"history","answer_type":"exact","length_class":"short","prompt":"明治維新が始まった年を、西暦の数字だけで答えよ。","expected":"1868"}
+{"prompt_id":"his-004","category":"history","answer_type":"exact","length_class":"short","prompt":"In what year did Apollo 11 land on the Moon? Answer with the year only.","expected":"1969"}
+{"prompt_id":"com-001","category":"commonsense","answer_type":"exact","length_class":"short","prompt":"氷を室温の部屋に置いたままにするとどうなるか。溶ける か 凍る のどちらかで答えよ。","expected":"溶ける"}
+{"prompt_id":"com-002","category":"commonsense","answer_type":"exact","length_class":"short","prompt":"雨が降っている。外出時に傘は必要か。はい か いいえ で答えよ。","expected":"はい"}
+{"prompt_id":"com-003","category":"commonsense","answer_type":"exact","length_class":"short","prompt":"ガラスのコップを固い床に落とした。割れる か 弾む のどちらの可能性が高いか答えよ。","expected":"割れる"}
+{"prompt_id":"com-004","category":"commonsense","answer_type":"exact","length_class":"short","prompt":"晴れた夜空で最も明るく見える天体を、一語で答えよ。","expected":"月"}
+{"prompt_id":"tra-001","category":"translation","answer_type":"free","length_class":"medium","prompt":"次の文を日本語に翻訳せよ。The receiver detects a bit error and requests retransmission.","criteria":"受信側が誤りを検出し再送を要求する意味が保たれ、日本語として自然である。"}
+{"prompt_id":"tra-002","category":"translation","answer_type":"free","length_class":"medium","prompt":"次の文を英語に翻訳せよ。誤り訂正符号は通信路の雑音によって生じた誤りを訂正する。","criteria":"error correcting code が通信路雑音由来の誤りを訂正するという意味が保たれている。"}
+{"prompt_id":"tra-003","category":"translation","answer_type":"free","length_class":"medium","prompt":"次の文を日本語に翻訳せよ。The FPGA samples the UART line at sixteen times the baud rate.","criteria":"FPGA がボーレートの16倍でUART信号を標本化する意味が保たれている。"}
+{"prompt_id":"tra-004","category":"translation","answer_type":"free","length_class":"medium","prompt":"次の文を英語に翻訳せよ。ハミング符号は1ビットの誤りを訂正できる。","criteria":"Hamming code が single bit error を訂正できるという意味が保たれている。"}
+{"prompt_id":"ctl-001","category":"control","answer_type":"free","length_class":"medium","prompt":"PID制御の比例項、積分項、微分項がそれぞれ何に作用するかを簡潔に説明せよ。","criteria":"比例は現在偏差、積分は定常偏差の除去、微分は変化率への応答という対応が正しい。"}
+{"prompt_id":"ctl-002","category":"control","answer_type":"free","length_class":"medium","prompt":"サンプリング周波数とナイキスト周波数の関係、およびエイリアシングが生じる条件を説明せよ。","criteria":"ナイキスト周波数がサンプリング周波数の半分であり、それを超える成分で折り返しが生じる点に触れている。"}
+{"prompt_id":"ctl-003","category":"control","answer_type":"free","length_class":"medium","prompt":"開ループ制御と閉ループ制御の違いを、外乱への応答の観点から説明せよ。","criteria":"閉ループが出力を測定して補正し外乱に強い点、開ループが補正しない点に触れている。"}
+{"prompt_id":"ctl-004","category":"control","answer_type":"free","length_class":"medium","prompt":"連続時間系において、伝達関数の極の実部の符号が系の安定性にどう対応するかを説明せよ。","criteria":"実部が負なら安定、正なら不安定という対応が正しい。"}
+{"prompt_id":"sto-001","category":"story","answer_type":"free","length_class":"long","prompt":"次の書き出しに続けて、200字程度の物語を書け。研究室の窓際に置かれた基板が、深夜になると小さく点滅を始めた。","criteria":"書き出しの状況と矛盾せず、日本語として一貫した続きになっている。"}
+{"prompt_id":"sto-002","category":"story","answer_type":"free","length_class":"long","prompt":"Continue the following story in about 150 words. The last message from the probe arrived three years after it went silent.","criteria":"冒頭の設定と矛盾せず、英語として一貫した続きになっている。"}
+{"prompt_id":"sto-003","category":"story","answer_type":"free","length_class":"long","prompt":"次の状況の続きを150字程度で書け。通信路の雑音が強まり、届く単語の一部が欠け始めた。","criteria":"通信の劣化という設定を保ったまま一貫した続きになっている。"}
+{"prompt_id":"oth-001","category":"code","answer_type":"free","length_class":"medium","prompt":"Write a Python function named reverse_text that takes one string and returns it reversed. Output only the code.","criteria":"reverse_text という名前の関数が定義され、文字列を反転して返す。"}
+{"prompt_id":"oth-002","category":"format","answer_type":"exact","length_class":"short","prompt":"次のCSV 1行をJSONオブジェクトに変換せよ。キーは name, age の順、値は文字列とし、空白を入れずJSONだけを出力せよ。\nname,age\ntaro,20","expected":"{\"name\":\"taro\",\"age\":\"20\"}"}
+{"prompt_id":"oth-003","category":"summary","answer_type":"free","length_class":"medium","prompt":"次の文章を1文で要約せよ。誤り訂正符号は、送信側で冗長ビットを付加し、受信側でその冗長性を用いて雑音による誤りを検出および訂正する技術である。符号化率を下げるほど訂正能力は高まるが、伝送効率は低下する。","criteria":"冗長性による誤り訂正と、符号化率と効率のトレードオフの両方に触れている。"}
+{"prompt_id":"oth-004","category":"extraction","answer_type":"exact","length_class":"short","prompt":"次のJSONの tags の2番目の要素だけを出力せよ。{\"id\":7,\"tags\":[\"alpha\",\"beta\"],\"ok\":true}","expected":"beta"}
+{"prompt_id":"oth-005","category":"conversion","answer_type":"exact","length_class":"short","prompt":"2.5 km は何メートルか。数字だけで答えよ。","expected":"2500"}
